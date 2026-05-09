@@ -1,0 +1,8 @@
+<dependencies>
+  <!-- Requires External Dependency Manager for Unity (EDM4U).
+       If EDM4U is not installed, add this line to your mainTemplate.gradle manually:
+       implementation 'com.google.android.play:review:2.0.1' -->
+  <androidPackages>
+    <androidPackage spec="com.google.android.play:review:2.0.1" />
+  </androidPackages>
+</dependencies>
