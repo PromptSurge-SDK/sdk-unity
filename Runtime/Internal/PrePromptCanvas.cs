@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class PrePromptCanvas {
@@ -8,6 +10,12 @@ namespace PromptSurgeSDK.Internal {
             var res   = response ?? Defaults.Response;
             var root  = BuildDialog(res, onAccept, onDismiss);
             UnityEngine.Object.DontDestroyOnLoad(root);
+
+            // Optionally load header image asynchronously
+            if (!string.IsNullOrEmpty(res.imageUrl)) {
+                PromptSurgeRunner.Instance.StartCoroutine(
+                    LoadHeaderImage(root, res.imageUrl));
+            }
         }
 
         // ── Build ──────────────────────────────────────────────────────────────
@@ -32,6 +40,7 @@ namespace PromptSurgeSDK.Internal {
             // Card
             var cardColor = ParseHex(res.theme?.backgroundColor) ?? Color.white;
             var card = CreatePanel(root, cardColor, stretch: false);
+            card.name = "ps_card";
             var cardRect = card.GetComponent<RectTransform>();
             cardRect.anchorMin = new Vector2(0.075f, 0.5f);
             cardRect.anchorMax = new Vector2(0.925f, 0.5f);
@@ -43,8 +52,8 @@ namespace PromptSurgeSDK.Internal {
             cardBtn.transition = Selectable.Transition.None;
 
             var vl = card.AddComponent<VerticalLayoutGroup>();
-            vl.padding             = new RectOffset(40, 40, 40, 40);
-            vl.spacing             = 20;
+            vl.padding             = new RectOffset(0, 0, 0, 40);
+            vl.spacing             = 0;
             vl.childAlignment      = TextAnchor.MiddleCenter;
             vl.childControlWidth   = true;
             vl.childForceExpandWidth = true;
@@ -53,13 +62,38 @@ namespace PromptSurgeSDK.Internal {
             var csf = card.AddComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var textColor = ParseHex(res.theme?.textColor) ?? new Color(0.10f, 0.12f, 0.18f);
-            AddText(card, res.text?.title ?? Defaults.Text.title, 42, FontStyle.Bold, textColor);
-            AddText(card, res.text?.body  ?? Defaults.Text.body,  32, FontStyle.Normal, textColor);
+            // Header image placeholder (zero height; filled once image loads)
+            var imgGo = new GameObject("HeaderImage");
+            imgGo.transform.SetParent(card.transform, false);
+            imgGo.AddComponent<RawImage>().color = Color.clear;
+            var imgLe = imgGo.AddComponent<LayoutElement>();
+            imgLe.preferredHeight = 0;
+            imgLe.flexibleWidth   = 1;
+            imgGo.name = "ps_header_image"; // used to find it when setting the texture
 
-            // Button row
+            // Text section with its own padding
+            var textSection = new GameObject("TextSection");
+            textSection.transform.SetParent(card.transform, false);
+            var textVl = textSection.AddComponent<VerticalLayoutGroup>();
+            textVl.padding            = new RectOffset(40, 40, 40, 0);
+            textVl.spacing            = 20;
+            textVl.childAlignment     = TextAnchor.MiddleCenter;
+            textVl.childControlWidth  = true;
+            textVl.childForceExpandWidth = true;
+            textVl.childControlHeight = false;
+            textVl.childForceExpandHeight = false;
+            var textCsf = textSection.AddComponent<ContentSizeFitter>();
+            textCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var textLe = textSection.AddComponent<LayoutElement>();
+            textLe.flexibleWidth = 1;
+
+            var textColor = ParseHex(res.theme?.textColor) ?? new Color(0.10f, 0.12f, 0.18f);
+            AddText(textSection, res.text?.title ?? Defaults.Text.title, 42, FontStyle.Bold, textColor);
+            AddText(textSection, res.text?.body  ?? Defaults.Text.body,  32, FontStyle.Normal, textColor);
+
+            // Button row (parented to textSection so it shares the same padding)
             var row = new GameObject("Buttons");
-            row.transform.SetParent(card.transform, false);
+            row.transform.SetParent(textSection.transform, false);
             var hl = row.AddComponent<HorizontalLayoutGroup>();
             hl.spacing              = 20;
             hl.childForceExpandWidth = true;
@@ -154,6 +188,33 @@ namespace PromptSurgeSDK.Internal {
             } catch {
                 return null;
             }
+        }
+
+        /// Loads a header image from URL and inserts it at the top of the dialog card.
+        private static IEnumerator LoadHeaderImage(GameObject root, string url) {
+            using var req = UnityWebRequestTexture.GetTexture(url);
+            yield return req.SendWebRequest();
+
+            if (root == null) yield break; // dialog was dismissed
+            if (req.result != UnityWebRequest.Result.Success) yield break;
+
+            var imgGo = root.transform.Find("ps_card/ps_header_image")?.gameObject;
+            if (imgGo == null) yield break;
+
+            var texture = DownloadHandlerTexture.GetContent(req);
+            var rawImg  = imgGo.GetComponent<RawImage>();
+            if (rawImg == null || texture == null) yield break;
+
+            rawImg.texture = texture;
+            rawImg.color   = Color.white;
+
+            // Compute height from aspect ratio (max 320 px in reference resolution)
+            float aspect = (float)texture.height / texture.width;
+            float refWidth = 1080f * 0.85f; // card width fraction
+            float height = Mathf.Min(refWidth * aspect, 320f);
+
+            var le = imgGo.GetComponent<LayoutElement>();
+            if (le != null) le.preferredHeight = height;
         }
     }
 }

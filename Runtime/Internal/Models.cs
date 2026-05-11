@@ -25,6 +25,7 @@ namespace PromptSurgeSDK.Internal {
         public int appPromptNumber;
         public PromptText text;
         public DialogTheme theme;
+        public string imageUrl;
     }
 
     internal static class Defaults {
