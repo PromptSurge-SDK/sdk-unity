@@ -10,6 +10,7 @@ namespace PromptSurgeSDK {
         private static string _apiKey;
         private static string _apiBaseUrl;
         private static bool   _initialized;
+        private const  string OptOutKey = "PromptSurge_OptedOut";
 
         // ── Public API ─────────────────────────────────────────────────────────
 
@@ -21,11 +22,31 @@ namespace PromptSurgeSDK {
         }
 
         /// <summary>
+        /// Opt this user out of all PromptSurge pre-prompt dialogs permanently (until OptIn is called).
+        /// Persisted in PlayerPrefs across sessions. Safe to call before Initialize.
+        /// </summary>
+        public static void OptOut() {
+            UnityEngine.PlayerPrefs.SetInt(OptOutKey, 1);
+            UnityEngine.PlayerPrefs.Save();
+        }
+
+        /// <summary>Re-enable pre-prompt dialogs after a previous OptOut call.</summary>
+        public static void OptIn() {
+            UnityEngine.PlayerPrefs.SetInt(OptOutKey, 0);
+            UnityEngine.PlayerPrefs.Save();
+        }
+
+        /// <summary>Whether the current user has opted out of review prompts.</summary>
+        public static bool IsOptedOut =>
+            UnityEngine.PlayerPrefs.GetInt(OptOutKey, 0) == 1;
+
+        /// <summary>
         /// Fetches the current prompt and shows the pre-prompt dialog if
         /// rate limits and holdout allow. Does nothing in the editor.
         /// </summary>
         public static void RequestReview() {
             if (!_initialized) return;
+            if (IsOptedOut) return;
             if (HoldoutManager.IsHoldout) return;
             if (!RateLimiter.CanShow) return;
 
