@@ -56,6 +56,7 @@ void OnLevelComplete() {
 
 - **Holdout group:** 10% of devices silently skipped (stored in `PlayerPrefs`).
 - **Rate limiting:** 90-day cooldown after shown; 7-day after dismiss.
+- **Impression limit:** When your plan's monthly cap is reached the API returns `402`. The SDK stores this flag in `PlayerPrefs` and on the next `RequestReview()` call suppresses the dialog and fires the native OS review sheet directly. Clears automatically when the next billing period begins.
 - **Fallback:** Bundled English copy shown if the API is unreachable.
 - **Editor:** `RequestReview()` does nothing in Play Mode — no dialog or native review sheet fires.
 - **No sentiment gating:** Both buttons fire `SKStoreReviewController` / `ReviewManager` — compliant with Apple guideline 5.6.1 and Google Play policy.
