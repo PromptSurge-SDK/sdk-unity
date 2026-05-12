@@ -5,9 +5,13 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class PromptTextRepository {
-        private const string CacheKey    = "ps_cached_prompt";
-        private const string CacheTimeKey = "ps_cached_prompt_at";
-        private const float  CacheExpirySeconds = 6 * 3600;
+        private const string CacheKey              = "ps_cached_prompt";
+        private const string CacheTimeKey          = "ps_cached_prompt_at";
+        private const string ImpressionLimitKey    = "ps_impression_limit_exceeded";
+        private const float  CacheExpirySeconds    = 6 * 3600;
+
+        internal static bool IsImpressionLimitExceeded =>
+            PlayerPrefs.GetInt(ImpressionLimitKey, 0) == 1;
 
         internal static void Fetch(string apiKey, string apiBaseUrl, Action<PromptResponse> callback) {
             PromptSurgeRunner.Instance.StartCoroutine(FetchCoroutine(apiKey, apiBaseUrl, callback));
@@ -33,10 +37,15 @@ namespace PromptSurgeSDK.Internal {
             yield return req.SendWebRequest();
 
             PromptResponse result = null;
-            if (req.result == UnityWebRequest.Result.Success) {
+            if (req.responseCode == 402) {
+                PlayerPrefs.SetInt(ImpressionLimitKey, 1);
+                PlayerPrefs.Save();
+            } else if (req.result == UnityWebRequest.Result.Success) {
                 try {
                     result = JsonUtility.FromJson<PromptResponse>(req.downloadHandler.text);
                     SaveCache(req.downloadHandler.text);
+                    PlayerPrefs.SetInt(ImpressionLimitKey, 0);
+                    PlayerPrefs.Save();
                 } catch { }
             }
             req.Dispose();

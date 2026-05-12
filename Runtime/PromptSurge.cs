@@ -50,6 +50,14 @@ namespace PromptSurgeSDK {
             if (HoldoutManager.IsHoldout) return;
             if (!RateLimiter.CanShow) return;
 
+            // Impression limit reached — skip pre-prompt, fire native review directly.
+            if (PromptTextRepository.IsImpressionLimitExceeded) {
+                ReviewRequester.Request();
+                Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.ReviewRequested, null);
+                RateLimiter.RecordShown();
+                return;
+            }
+
             PromptTextRepository.Fetch(_apiKey, _apiBaseUrl, response => {
                 var res = response ?? Defaults.Response;
 
