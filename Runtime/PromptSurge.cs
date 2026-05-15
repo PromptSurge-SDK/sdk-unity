@@ -1,6 +1,18 @@
 using PromptSurgeSDK.Internal;
 
 namespace PromptSurgeSDK {
+    /// <summary>Controls the verbosity of PromptSurge log output in the Unity console.</summary>
+    public enum PromptSurgeLogLevel {
+        /// <summary>No logging (default — recommended for production).</summary>
+        None    = 0,
+        /// <summary>Errors only.</summary>
+        Error   = 1,
+        /// <summary>Key lifecycle events (Initialize, RequestReview guards, dialog shown, button tapped, events sent).</summary>
+        Info    = 2,
+        /// <summary>Everything including cache hits and network details.</summary>
+        Verbose = 3,
+    }
+
     /// <summary>
     /// Entry point for the PromptSurge Unity SDK.
     /// Call Initialize() once at game start, then RequestReview() at a
@@ -14,11 +26,21 @@ namespace PromptSurgeSDK {
 
         // ── Public API ─────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Set the SDK log level. Call before or after Initialize — order doesn't matter.
+        /// Defaults to <see cref="PromptSurgeLogLevel.None"/> (silent in production).
+        /// </summary>
+        public static void SetLogLevel(PromptSurgeLogLevel level) {
+            Logger.Level = (LogLevel)(int)level;
+            Logger.Info($"Log level set to {level}.");
+        }
+
         public static void Initialize(string apiKey,
                                       string apiBaseUrl = "https://api.promptsurge.me") {
-            _apiKey     = apiKey;
-            _apiBaseUrl = apiBaseUrl;
+            _apiKey      = apiKey;
+            _apiBaseUrl  = apiBaseUrl;
             _initialized = true;
+            Logger.Info($"Initialized — apiBaseUrl={apiBaseUrl}");
         }
 
         /// <summary>
@@ -28,12 +50,14 @@ namespace PromptSurgeSDK {
         public static void OptOut() {
             UnityEngine.PlayerPrefs.SetInt(OptOutKey, 1);
             UnityEngine.PlayerPrefs.Save();
+            Logger.Info("User opted out.");
         }
 
         /// <summary>Re-enable pre-prompt dialogs after a previous OptOut call.</summary>
         public static void OptIn() {
             UnityEngine.PlayerPrefs.SetInt(OptOutKey, 0);
             UnityEngine.PlayerPrefs.Save();
+            Logger.Info("User opted in.");
         }
 
         /// <summary>Whether the current user has opted out of review prompts.</summary>
@@ -42,21 +66,34 @@ namespace PromptSurgeSDK {
 
         /// <summary>
         /// Fetches the current prompt and shows the pre-prompt dialog if
-        /// rate limits and holdout allow. Does nothing in the editor.
+        /// rate limits and holdout allow. Does nothing if not initialized.
         /// </summary>
         public static void RequestReview() {
-            if (!_initialized) return;
-            if (IsOptedOut) return;
+            Logger.Info("RequestReview called.");
+
+            if (!_initialized) {
+                Logger.Error("RequestReview called before Initialize — ignoring.");
+                return;
+            }
+            if (IsOptedOut) {
+                Logger.Info("Skipping — user is opted out.");
+                return;
+            }
             if (HoldoutManager.IsHoldout) {
+                Logger.Info("Holdout group — firing native review directly.");
                 ReviewRequester.Request();
                 Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
                 RateLimiter.RecordShown();
                 return;
             }
-            if (!RateLimiter.CanShow) return;
+            if (!RateLimiter.CanShow) {
+                Logger.Info("Skipping — rate limit not elapsed.");
+                return;
+            }
 
             // Impression limit reached — skip pre-prompt, fire native review directly.
             if (PromptTextRepository.IsImpressionLimitExceeded) {
+                Logger.Info("Impression limit exceeded — firing native review directly.");
                 ReviewRequester.Request();
                 Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
                 RateLimiter.RecordShown();

@@ -6,7 +6,7 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class Telemetry {
-        internal const string SdkVersion = "1.0.0";
+        internal const string SdkVersion = "1.0.6";
         private static readonly string SessionId = Guid.NewGuid().ToString();
 
         internal static void Send(string apiKey, string apiBaseUrl, string eventType,
@@ -38,12 +38,21 @@ namespace PromptSurgeSDK.Internal {
   ""payload"":{{{payload}}}
 }}";
 
+            Logger.Info($"Sending event: {eventType}" +
+                        (promptId != null ? $" promptId={promptId}" : ""));
+
             var req = new UnityWebRequest(apiBaseUrl + "/v1/events", "POST");
             req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("X-PromptSurge-Key", apiKey);
             req.SetRequestHeader("Content-Type", "application/json");
             yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success) {
+                Logger.Verbose($"Event accepted: {eventType} (HTTP {req.responseCode})");
+            } else {
+                Logger.Error($"Event send failed: {eventType} — {req.error} (HTTP {req.responseCode})");
+            }
             req.Dispose();
         }
 

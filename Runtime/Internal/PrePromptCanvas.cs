@@ -8,6 +8,7 @@ namespace PromptSurgeSDK.Internal {
     internal static class PrePromptCanvas {
         internal static void Show(PromptResponse response, Action onAccept, Action onDismiss) {
             var res   = response ?? Defaults.Response;
+            Logger.Info($"Showing pre-prompt dialog — id={res.promptId} title=\"{res.text?.title}\"");
             var root  = BuildDialog(res, onAccept, onDismiss);
             UnityEngine.Object.DontDestroyOnLoad(root);
 
@@ -104,13 +105,22 @@ namespace PromptSurgeSDK.Internal {
             var posColor = ParseHex(res.theme?.positiveButtonColor) ?? new Color(0.07f, 0.62f, 0.50f);
             var negColor = ParseHex(res.theme?.negativeButtonColor) ?? new Color(0.55f, 0.55f, 0.60f);
 
-            CreateButton(row, res.text?.positiveButton ?? Defaults.Text.positiveButton,
-                         posColor, Color.white,
-                         () => { UnityEngine.Object.Destroy(root); onAccept?.Invoke(); });
-
+            // Negative (dismiss) on the left, positive (accept) on the right.
             CreateButton(row, res.text?.negativeButton ?? Defaults.Text.negativeButton,
                          new Color(0.94f, 0.94f, 0.96f), negColor,
-                         () => { UnityEngine.Object.Destroy(root); onDismiss?.Invoke(); });
+                         () => {
+                             Logger.Info("Pre-prompt dismissed via 'Not now' button.");
+                             UnityEngine.Object.Destroy(root);
+                             onDismiss?.Invoke();
+                         });
+
+            CreateButton(row, res.text?.positiveButton ?? Defaults.Text.positiveButton,
+                         posColor, Color.white,
+                         () => {
+                             Logger.Info("Pre-prompt confirmed via 'Sure!' button.");
+                             UnityEngine.Object.Destroy(root);
+                             onAccept?.Invoke();
+                         });
 
             return root;
         }

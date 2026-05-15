@@ -31,6 +31,7 @@ namespace PromptSurgeSDK.Internal {
 
         private static IEnumerator FetchAndCache(string apiKey, string apiBaseUrl,
                                                   Action<PromptResponse> callback) {
+            Logger.Info("Fetching prompt from API…");
             var req = UnityWebRequest.Get(apiBaseUrl + "/v1/prompts");
             req.SetRequestHeader("X-PromptSurge-Key", apiKey);
             req.SetRequestHeader("Accept-Language", Application.systemLanguage.ToString());
@@ -38,15 +39,22 @@ namespace PromptSurgeSDK.Internal {
 
             PromptResponse result = null;
             if (req.responseCode == 402) {
+                Logger.Info("Impression limit reached (402) — will use native review directly.");
                 PlayerPrefs.SetInt(ImpressionLimitKey, 1);
                 PlayerPrefs.Save();
             } else if (req.result == UnityWebRequest.Result.Success) {
                 try {
-                    result = JsonUtility.FromJson<PromptResponse>(req.downloadHandler.text);
+                    var api = JsonUtility.FromJson<APIPromptResponse>(req.downloadHandler.text);
+                    result  = ApiMapper.Map(api);
                     SaveCache(req.downloadHandler.text);
                     PlayerPrefs.SetInt(ImpressionLimitKey, 0);
                     PlayerPrefs.Save();
-                } catch { }
+                    Logger.Info($"Prompt fetched — id={result?.promptId} title=\"{result?.text?.title}\"");
+                } catch (Exception ex) {
+                    Logger.Error($"Failed to parse prompt response: {ex.Message}");
+                }
+            } else {
+                Logger.Error($"Prompt fetch failed: {req.error} (HTTP {req.responseCode})");
             }
             req.Dispose();
             callback(result);
@@ -59,7 +67,10 @@ namespace PromptSurgeSDK.Internal {
             var now = (float)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
             if (now - savedAt > CacheExpirySeconds) return null;
             try {
-                return JsonUtility.FromJson<PromptResponse>(PlayerPrefs.GetString(CacheKey));
+                var api = JsonUtility.FromJson<APIPromptResponse>(PlayerPrefs.GetString(CacheKey));
+                var cached = ApiMapper.Map(api);
+                Logger.Info($"Using cached prompt — id={cached?.promptId}");
+                return cached;
             } catch {
                 return null;
             }
