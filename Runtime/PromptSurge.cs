@@ -47,13 +47,18 @@ namespace PromptSurgeSDK {
         public static void RequestReview() {
             if (!_initialized) return;
             if (IsOptedOut) return;
-            if (HoldoutManager.IsHoldout) return;
+            if (HoldoutManager.IsHoldout) {
+                ReviewRequester.Request();
+                Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
+                RateLimiter.RecordShown();
+                return;
+            }
             if (!RateLimiter.CanShow) return;
 
             // Impression limit reached — skip pre-prompt, fire native review directly.
             if (PromptTextRepository.IsImpressionLimitExceeded) {
                 ReviewRequester.Request();
-                Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.ReviewRequested, null);
+                Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
                 RateLimiter.RecordShown();
                 return;
             }
@@ -67,10 +72,10 @@ namespace PromptSurgeSDK {
 
                 PrePromptCanvas.Show(res,
                     onAccept: () => {
-                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptAccepted,
+                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptConfirmed,
                                        res.promptId);
                         ReviewRequester.Request();
-                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.ReviewRequested);
+                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested);
                     },
                     onDismiss: () => {
                         RateLimiter.RecordDismissed();

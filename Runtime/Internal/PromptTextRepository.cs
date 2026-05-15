@@ -32,7 +32,7 @@ namespace PromptSurgeSDK.Internal {
         private static IEnumerator FetchAndCache(string apiKey, string apiBaseUrl,
                                                   Action<PromptResponse> callback) {
             var req = UnityWebRequest.Get(apiBaseUrl + "/v1/prompts");
-            req.SetRequestHeader("Authorization", "Bearer " + apiKey);
+            req.SetRequestHeader("X-PromptSurge-Key", apiKey);
             req.SetRequestHeader("Accept-Language", Application.systemLanguage.ToString());
             yield return req.SendWebRequest();
 

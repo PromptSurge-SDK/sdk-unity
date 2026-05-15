@@ -41,7 +41,7 @@ namespace PromptSurgeSDK.Internal {
             var req = new UnityWebRequest(apiBaseUrl + "/v1/events", "POST");
             req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
             req.downloadHandler = new DownloadHandlerBuffer();
-            req.SetRequestHeader("Authorization", "Bearer " + apiKey);
+            req.SetRequestHeader("X-PromptSurge-Key", apiKey);
             req.SetRequestHeader("Content-Type", "application/json");
             yield return req.SendWebRequest();
             req.Dispose();
