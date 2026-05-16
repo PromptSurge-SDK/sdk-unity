@@ -31,8 +31,8 @@ namespace PromptSurgeSDK {
         /// Defaults to <see cref="PromptSurgeLogLevel.None"/> (silent in production).
         /// </summary>
         public static void SetLogLevel(PromptSurgeLogLevel level) {
-            Logger.Level = (LogLevel)(int)level;
-            Logger.Info($"Log level set to {level}.");
+            Internal.Logger.Level = (Internal.LogLevel)(int)level;
+            Internal.Logger.Info($"Log level set to {level}.");
         }
 
         public static void Initialize(string apiKey,
@@ -40,7 +40,7 @@ namespace PromptSurgeSDK {
             _apiKey      = apiKey;
             _apiBaseUrl  = apiBaseUrl;
             _initialized = true;
-            Logger.Info($"Initialized — apiBaseUrl={apiBaseUrl}");
+            Internal.Logger.Info($"Initialized — apiBaseUrl={apiBaseUrl}");
         }
 
         /// <summary>
@@ -50,14 +50,14 @@ namespace PromptSurgeSDK {
         public static void OptOut() {
             UnityEngine.PlayerPrefs.SetInt(OptOutKey, 1);
             UnityEngine.PlayerPrefs.Save();
-            Logger.Info("User opted out.");
+            Internal.Logger.Info("User opted out.");
         }
 
         /// <summary>Re-enable pre-prompt dialogs after a previous OptOut call.</summary>
         public static void OptIn() {
             UnityEngine.PlayerPrefs.SetInt(OptOutKey, 0);
             UnityEngine.PlayerPrefs.Save();
-            Logger.Info("User opted in.");
+            Internal.Logger.Info("User opted in.");
         }
 
         /// <summary>Whether the current user has opted out of review prompts.</summary>
@@ -69,31 +69,31 @@ namespace PromptSurgeSDK {
         /// rate limits and holdout allow. Does nothing if not initialized.
         /// </summary>
         public static void RequestReview() {
-            Logger.Info("RequestReview called.");
+            Internal.Logger.Info("RequestReview called.");
 
             if (!_initialized) {
-                Logger.Error("RequestReview called before Initialize — ignoring.");
+                Internal.Logger.Error("RequestReview called before Initialize — ignoring.");
                 return;
             }
             if (IsOptedOut) {
-                Logger.Info("Skipping — user is opted out.");
+                Internal.Logger.Info("Skipping — user is opted out.");
                 return;
             }
             if (HoldoutManager.IsHoldout) {
-                Logger.Info("Holdout group — firing native review directly.");
+                Internal.Logger.Info("Holdout group — firing native review directly.");
                 ReviewRequester.Request();
                 Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
                 RateLimiter.RecordShown();
                 return;
             }
             if (!RateLimiter.CanShow) {
-                Logger.Info("Skipping — rate limit not elapsed.");
+                Internal.Logger.Info("Skipping — rate limit not elapsed.");
                 return;
             }
 
             // Impression limit reached — skip pre-prompt, fire native review directly.
             if (PromptTextRepository.IsImpressionLimitExceeded) {
-                Logger.Info("Impression limit exceeded — firing native review directly.");
+                Internal.Logger.Info("Impression limit exceeded — firing native review directly.");
                 ReviewRequester.Request();
                 Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
                 RateLimiter.RecordShown();
