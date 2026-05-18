@@ -91,35 +91,35 @@ namespace PromptSurgeSDK {
                 return;
             }
 
-            // Impression limit reached — skip pre-prompt, fire native review directly.
-            if (PromptTextRepository.IsImpressionLimitExceeded) {
-                Internal.Logger.Info("Impression limit exceeded — firing native review directly.");
-                ReviewRequester.Request();
-                Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
-                RateLimiter.RecordShown();
-                return;
-            }
+            PromptTextRepository.Fetch(_apiKey, _apiBaseUrl,
+                onSuccess: response => {
+                    var res = response ?? Defaults.Response;
 
-            PromptTextRepository.Fetch(_apiKey, _apiBaseUrl, response => {
-                var res = response ?? Defaults.Response;
+                    RateLimiter.RecordShown();
+                    Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptShown,
+                                   res.promptId, res.appPromptNumber > 0 ? res.appPromptNumber : (int?)null);
 
-                RateLimiter.RecordShown();
-                Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptShown,
-                               res.promptId, res.appPromptNumber > 0 ? res.appPromptNumber : (int?)null);
-
-                PrePromptCanvas.Show(res,
-                    onAccept: () => {
-                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptConfirmed,
-                                       res.promptId);
-                        ReviewRequester.Request();
-                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested);
-                    },
-                    onDismiss: () => {
-                        RateLimiter.RecordDismissed();
-                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptDismissed,
-                                       res.promptId);
-                    });
-            });
+                    PrePromptCanvas.Show(res,
+                        onAccept: () => {
+                            Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptConfirmed,
+                                           res.promptId);
+                            ReviewRequester.Request();
+                            Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested);
+                        },
+                        onDismiss: () => {
+                            RateLimiter.RecordDismissed();
+                            Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptDismissed,
+                                           res.promptId);
+                        });
+                },
+                onLimitExceeded: () => {
+                    // Server billing limit hit — fire native review directly.
+                    // No client-side caching: every call checks the server fresh.
+                    Internal.Logger.Info("Impression limit exceeded (402) — firing native review directly.");
+                    ReviewRequester.Request();
+                    Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
+                    RateLimiter.RecordShown();
+                });
         }
     }
 }
