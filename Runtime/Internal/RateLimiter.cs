@@ -8,20 +8,8 @@ namespace PromptSurgeSDK.Internal {
         private const double ShownCooldownDays     = 90;
         private const double DismissedCooldownDays = 7;
 
-        internal static bool CanShow {
-            get {
-                var now = EpochNow();
-                if (PlayerPrefs.HasKey(ShownKey)) {
-                    var elapsed = now - PlayerPrefs.GetFloat(ShownKey);
-                    if (elapsed < ShownCooldownDays * 86400) return false;
-                }
-                if (PlayerPrefs.HasKey(DismissedKey)) {
-                    var elapsed = now - PlayerPrefs.GetFloat(DismissedKey);
-                    if (elapsed < DismissedCooldownDays * 86400) return false;
-                }
-                return true;
-            }
-        }
+        // TESTING: rate limiting disabled — re-enable before release.
+        internal static bool CanShow => true;
 
         internal static void RecordShown() {
             PlayerPrefs.SetFloat(ShownKey, EpochNow());
