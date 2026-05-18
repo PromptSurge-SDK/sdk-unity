@@ -6,7 +6,7 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class Telemetry {
-        internal const string SdkVersion = "1.0.10";
+        internal const string SdkVersion = "1.0.11";
         private static readonly string SessionId = Guid.NewGuid().ToString();
 
         internal static void Send(string apiKey, string apiBaseUrl, string eventType,
@@ -17,25 +17,33 @@ namespace PromptSurgeSDK.Internal {
 
         private static IEnumerator PostEvent(string apiKey, string apiBaseUrl, string eventType,
                                              string promptId, int? servedPromptNumber) {
-            var payload = promptId != null
-                ? $"\"promptId\":\"{promptId}\""
-                : "";
+            // Build payload fields. servedPromptNumber must be an unquoted number (not a string).
+            var payloadFields = "";
+            if (promptId != null)
+                payloadFields += $"\"promptId\":\"{promptId}\"";
             if (servedPromptNumber.HasValue)
-                payload += (payload.Length > 0 ? "," : "") +
-                           $"\"servedPromptNumber\":\"{servedPromptNumber}\"";
+                payloadFields += (payloadFields.Length > 0 ? "," : "") +
+                                 $"\"servedPromptNumber\":{servedPromptNumber.Value}";
 
+            // Application.version can be empty in editor builds — fall back to "0.0.0" so the
+            // schema's min(1) check doesn't reject the event.
+            var appVersion = string.IsNullOrEmpty(Application.version) ? "0.0.0" : Application.version;
+
+            // Wrap in a batch envelope: the server expects { "events": [...] }.
             var json = $@"{{
-  ""eventType"":""{eventType}"",
-  ""eventId"":""{Guid.NewGuid()}"",
-  ""timestamp"":""{DateTime.UtcNow:O}"",
-  ""sessionId"":""{SessionId}"",
-  ""deviceId"":""{DeviceId()}"",
-  ""appVersion"":""{Application.version}"",
-  ""sdkVersion"":""{SdkVersion}"",
-  ""locale"":""{Application.systemLanguage}"",
-  ""platform"":""{Platform()}"",
-  ""holdout"":{(HoldoutManager.IsHoldout ? "true" : "false")},
-  ""payload"":{{{payload}}}
+  ""events"":[{{
+    ""eventType"":""{eventType}"",
+    ""eventId"":""{Guid.NewGuid()}"",
+    ""timestamp"":""{DateTime.UtcNow:O}"",
+    ""sessionId"":""{SessionId}"",
+    ""deviceId"":""{DeviceId()}"",
+    ""appVersion"":""{appVersion}"",
+    ""sdkVersion"":""{SdkVersion}"",
+    ""locale"":""{Application.systemLanguage}"",
+    ""platform"":""{Platform()}"",
+    ""holdout"":{(HoldoutManager.IsHoldout ? "true" : "false")},
+    ""payload"":{{{payloadFields}}}
+  }}]
 }}";
 
             Logger.Info($"Sending event: {eventType}" +
