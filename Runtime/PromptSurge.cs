@@ -65,6 +65,26 @@ namespace PromptSurgeSDK {
             UnityEngine.PlayerPrefs.GetInt(OptOutKey, 0) == 1;
 
         /// <summary>
+        /// Warms the prompt cache in the background without showing any dialog.
+        /// Call this early — e.g. immediately after Initialize() or at scene load —
+        /// so the prompt text is already cached when RequestReview() is called at a
+        /// high-satisfaction moment. Eliminates the network round-trip delay from
+        /// the user-facing trigger point.
+        ///
+        /// Safe to call multiple times; no-ops if the cache is still fresh.
+        /// </summary>
+        public static void Prefetch() {
+            if (!_initialized) {
+                Internal.Logger.Error("Prefetch called before Initialize — ignoring.");
+                return;
+            }
+            Internal.Logger.Info("Prefetching prompt…");
+            PromptTextRepository.Fetch(_apiKey, _apiBaseUrl,
+                onSuccess:       _ => Internal.Logger.Info("Prompt prefetch complete."),
+                onLimitExceeded: () => Internal.Logger.Info("Prefetch: impression limit active (402)."));
+        }
+
+        /// <summary>
         /// Fetches the current prompt and shows the pre-prompt dialog if
         /// rate limits and holdout allow. Does nothing if not initialized.
         /// </summary>
