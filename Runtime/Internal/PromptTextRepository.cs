@@ -57,8 +57,10 @@ namespace PromptSurgeSDK.Internal {
                 try {
                     var api = JsonUtility.FromJson<APIPromptResponse>(req.downloadHandler.text);
                     result  = ApiMapper.Map(api);
-                    SaveCache(req.downloadHandler.text);
-                    Logger.Info($"Prompt fetched — id={result?.promptId} title=\"{result?.text?.title}\"");
+                    // Do not cache warm-up responses — they must always reflect live server state
+                    // so the counter can advance and warm-up completion is detected promptly.
+                    if (!api.warmup) SaveCache(req.downloadHandler.text);
+                    Logger.Info($"Prompt fetched — warmup={api.warmup} id={result?.promptId} title=\"{result?.text?.title}\"");
                 } catch (Exception ex) {
                     Logger.Error($"Failed to parse prompt response: {ex.Message}");
                 }

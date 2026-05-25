@@ -115,6 +115,18 @@ namespace PromptSurgeSDK {
                 onSuccess: response => {
                     var res = response ?? Defaults.Response;
 
+                    // Warm-up phase: server signals the app hasn't yet accumulated
+                    // enough distinct-device events to enable pre-prompts. Fire native
+                    // review directly (same path as holdout) so the event is counted
+                    // toward the threshold. Never show the dialog during warm-up.
+                    if (res.warmup) {
+                        Internal.Logger.Info("Warm-up phase — firing native review to build baseline.");
+                        ReviewRequester.Request();
+                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
+                        RateLimiter.RecordShown();
+                        return;
+                    }
+
                     RateLimiter.RecordShown();
                     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptShown,
                                    res.promptId, res.appPromptNumber > 0 ? res.appPromptNumber : (int?)null);

@@ -28,6 +28,11 @@ namespace PromptSurgeSDK.Internal {
         public PromptText text;
         public DialogTheme theme;
         public string imageUrl;
+        /// <summary>
+        /// True during the mandatory warm-up phase. SDK fires native review without dialog.
+        /// Never cached — always reflects the live server state.
+        /// </summary>
+        public bool warmup;
     }
 
     // ── API wire model (matches actual JSON from /v1/prompts) ────────────────
@@ -52,6 +57,11 @@ namespace PromptSurgeSDK.Internal {
         public string locale;
         public string imageUrl;
         public APIDialogTheme theme;
+        /// <summary>
+        /// True during the mandatory warm-up phase (first 50 distinct-device events).
+        /// The SDK fires native review without showing the pre-prompt dialog.
+        /// </summary>
+        public bool warmup;
     }
 
     // ── Mapping ──────────────────────────────────────────────────────────────
@@ -84,6 +94,7 @@ namespace PromptSurgeSDK.Internal {
                 text            = text,
                 theme           = theme,
                 imageUrl        = api.imageUrl,
+                warmup          = api.warmup,
             };
         }
     }
