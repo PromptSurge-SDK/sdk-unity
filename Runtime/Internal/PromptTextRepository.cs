@@ -40,7 +40,11 @@ namespace PromptSurgeSDK.Internal {
                                                   Action<PromptResponse> onSuccess,
                                                   Action onLimitExceeded) {
             Logger.Info("Fetching prompt from API…");
-            var req = UnityWebRequest.Get(apiBaseUrl + "/v1/prompts");
+            // appVersion drives per-version warm-up buckets server-side. Match the value
+            // the SDK reports on events so device counts line up. Older servers ignore it.
+            var version = string.IsNullOrEmpty(Application.version) ? "unknown" : Application.version;
+            var url = apiBaseUrl + "/v1/prompts?appVersion=" + UnityWebRequest.EscapeURL(version);
+            var req = UnityWebRequest.Get(url);
             req.SetRequestHeader("X-PromptSurge-Key", apiKey);
             req.SetRequestHeader("Accept-Language", Application.systemLanguage.ToString());
             yield return req.SendWebRequest();
