@@ -6,7 +6,7 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class Telemetry {
-        internal const string SdkVersion = "1.0.12";
+        internal const string SdkVersion = "1.0.13";
         private static readonly string SessionId = Guid.NewGuid().ToString();
 
         internal static void Send(string apiKey, string apiBaseUrl, string eventType,

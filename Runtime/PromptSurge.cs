@@ -1,18 +1,6 @@
 using PromptSurgeSDK.Internal;
 
 namespace PromptSurgeSDK {
-    /// <summary>Controls the verbosity of PromptSurge log output in the Unity console.</summary>
-    public enum PromptSurgeLogLevel {
-        /// <summary>No logging (default — recommended for production).</summary>
-        None    = 0,
-        /// <summary>Errors only.</summary>
-        Error   = 1,
-        /// <summary>Key lifecycle events (Initialize, RequestReview guards, dialog shown, button tapped, events sent).</summary>
-        Info    = 2,
-        /// <summary>Everything including cache hits and network details.</summary>
-        Verbose = 3,
-    }
-
     /// <summary>
     /// Entry point for the PromptSurge Unity SDK.
     /// Call Initialize() once at game start, then RequestReview() at a
@@ -30,9 +18,9 @@ namespace PromptSurgeSDK {
         /// Set the SDK log level. Call before or after Initialize — order doesn't matter.
         /// Defaults to <see cref="PromptSurgeLogLevel.None"/> (silent in production).
         /// </summary>
-        public static void SetLogLevel(PromptSurgeLogLevel level) {
-            Internal.Logger.Level = (Internal.LogLevel)(int)level;
-            Internal.Logger.Info($"Log level set to {level}.");
+        public static void SetLogLevel(LogLevel level) {
+            Logger.Level = level;
+            Logger.Info($"Log level set to {level}.");
         }
 
         public static void Initialize(string apiKey,
@@ -40,7 +28,7 @@ namespace PromptSurgeSDK {
             _apiKey      = apiKey;
             _apiBaseUrl  = apiBaseUrl;
             _initialized = true;
-            Internal.Logger.Info($"Initialized — apiBaseUrl={apiBaseUrl}");
+            Logger.Info($"Initialized — apiBaseUrl={apiBaseUrl}");
         }
 
         /// <summary>
@@ -50,14 +38,14 @@ namespace PromptSurgeSDK {
         public static void OptOut() {
             UnityEngine.PlayerPrefs.SetInt(OptOutKey, 1);
             UnityEngine.PlayerPrefs.Save();
-            Internal.Logger.Info("User opted out.");
+            Logger.Info("User opted out.");
         }
 
         /// <summary>Re-enable pre-prompt dialogs after a previous OptOut call.</summary>
         public static void OptIn() {
             UnityEngine.PlayerPrefs.SetInt(OptOutKey, 0);
             UnityEngine.PlayerPrefs.Save();
-            Internal.Logger.Info("User opted in.");
+            Logger.Info("User opted in.");
         }
 
         /// <summary>Whether the current user has opted out of review prompts.</summary>
@@ -75,13 +63,13 @@ namespace PromptSurgeSDK {
         /// </summary>
         public static void Prefetch() {
             if (!_initialized) {
-                Internal.Logger.Error("Prefetch called before Initialize — ignoring.");
+                Logger.Error("Prefetch called before Initialize — ignoring.");
                 return;
             }
-            Internal.Logger.Info("Prefetching prompt…");
+            Logger.Info("Prefetching prompt…");
             PromptTextRepository.Fetch(_apiKey, _apiBaseUrl,
-                onSuccess:       _ => Internal.Logger.Info("Prompt prefetch complete."),
-                onLimitExceeded: () => Internal.Logger.Info("Prefetch: impression limit active (402)."));
+                onSuccess:       _ => Logger.Info("Prompt prefetch complete."),
+                onLimitExceeded: () => Logger.Info("Prefetch: impression limit active (402)."));
         }
 
         /// <summary>
@@ -89,25 +77,25 @@ namespace PromptSurgeSDK {
         /// rate limits and holdout allow. Does nothing if not initialized.
         /// </summary>
         public static void RequestReview() {
-            Internal.Logger.Info("RequestReview called.");
+            Logger.Info("RequestReview called.");
 
             if (!_initialized) {
-                Internal.Logger.Error("RequestReview called before Initialize — ignoring.");
+                Logger.Error("RequestReview called before Initialize — ignoring.");
                 return;
             }
             if (IsOptedOut) {
-                Internal.Logger.Info("Skipping — user is opted out.");
+                Logger.Info("Skipping — user is opted out.");
                 return;
             }
             if (HoldoutManager.IsHoldout) {
-                Internal.Logger.Info("Holdout group — firing native review directly.");
+                Logger.Info("Holdout group — firing native review directly.");
                 ReviewRequester.Request();
                 Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
                 RateLimiter.RecordShown();
                 return;
             }
             if (!RateLimiter.CanShow) {
-                Internal.Logger.Info("Skipping — rate limit not elapsed.");
+                Logger.Info("Skipping — rate limit not elapsed.");
                 return;
             }
 
@@ -119,13 +107,13 @@ namespace PromptSurgeSDK {
                     // enough distinct-device events to enable pre-prompts. Fire native
                     // review directly (same path as holdout) so the event is counted
                     // toward the threshold. Never show the dialog during warm-up.
-                    if (res.warmup) {
-                        Internal.Logger.Info("Warm-up phase — firing native review to build baseline.");
-                        ReviewRequester.Request();
-                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
-                        RateLimiter.RecordShown();
-                        return;
-                    }
+                    // if (res.warmup) {
+                    //     Logger.Info("Warm-up phase — firing native review to build baseline.");
+                    //     ReviewRequester.Request();
+                    //     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
+                    //     RateLimiter.RecordShown();
+                    //     return;
+                    // }
 
                     RateLimiter.RecordShown();
                     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptShown,
@@ -147,7 +135,7 @@ namespace PromptSurgeSDK {
                 onLimitExceeded: () => {
                     // Server billing limit hit — fire native review directly.
                     // No client-side caching: every call checks the server fresh.
-                    Internal.Logger.Info("Impression limit exceeded (402) — firing native review directly.");
+                    Logger.Info("Impression limit exceeded (402) — firing native review directly.");
                     ReviewRequester.Request();
                     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
                     RateLimiter.RecordShown();

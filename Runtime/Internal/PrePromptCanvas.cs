@@ -96,9 +96,11 @@ namespace PromptSurgeSDK.Internal {
             var row = new GameObject("Buttons");
             row.transform.SetParent(textSection.transform, false);
             var hl = row.AddComponent<HorizontalLayoutGroup>();
-            hl.spacing              = 20;
-            hl.childForceExpandWidth = true;
-            hl.childControlHeight   = true;
+            hl.spacing                = 20;
+            hl.childControlWidth      = true;
+            hl.childForceExpandWidth  = true;
+            hl.childControlHeight     = true;
+            hl.childForceExpandHeight = true;
             var rowLe = row.AddComponent<LayoutElement>();
             rowLe.preferredHeight = 88;
 
@@ -141,11 +143,22 @@ namespace PromptSurgeSDK.Internal {
             return go;
         }
 
+        private static Font _font;
+        private static Font GetFont() {
+            if (_font != null) return _font;
+            // Unity 2022+ ships LegacyRuntime.ttf instead of Arial.ttf.
+            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (_font == null) _font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            if (_font == null) _font = Font.CreateDynamicFontFromOSFont("Arial", 16);
+            return _font;
+        }
+
         private static void AddText(GameObject parent, string content, int fontSize,
                                     FontStyle style, Color color) {
             var go   = new GameObject("Text");
             go.transform.SetParent(parent.transform, false);
             var txt  = go.AddComponent<Text>();
+            txt.font      = GetFont();
             txt.text      = content;
             txt.fontSize  = fontSize;
             txt.fontStyle = style;
@@ -175,6 +188,7 @@ namespace PromptSurgeSDK.Internal {
             var txtGo = new GameObject("Label");
             txtGo.transform.SetParent(go.transform, false);
             var txt = txtGo.AddComponent<Text>();
+            txt.font      = GetFont();
             txt.text      = label;
             txt.fontSize  = 32;
             txt.fontStyle = FontStyle.Bold;

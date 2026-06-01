@@ -20,12 +20,4 @@ namespace PromptSurgeSDK.Internal {
             if (Level >= LogLevel.Verbose) Debug.Log($"{Tag} {msg}");
         }
     }
-
-    /// <summary>Internal mirror of the public <see cref="PromptSurgeLogLevel"/> enum.</summary>
-    internal enum LogLevel {
-        None    = 0,
-        Error   = 1,
-        Info    = 2,
-        Verbose = 3,
-    }
 }
