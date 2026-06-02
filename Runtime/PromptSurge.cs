@@ -107,13 +107,13 @@ namespace PromptSurgeSDK {
                     // enough distinct-device events to enable pre-prompts. Fire native
                     // review directly (same path as holdout) so the event is counted
                     // toward the threshold. Never show the dialog during warm-up.
-                    // if (res.warmup) {
-                    //     Logger.Info("Warm-up phase — firing native review to build baseline.");
-                    //     ReviewRequester.Request();
-                    //     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
-                    //     RateLimiter.RecordShown();
-                    //     return;
-                    // }
+                    if (res.warmup) {
+                        Logger.Info("Warm-up phase — firing native review to build baseline.");
+                        ReviewRequester.Request();
+                        Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested, null);
+                        RateLimiter.RecordShown();
+                        return;
+                    }
 
                     RateLimiter.RecordShown();
                     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptShown,
