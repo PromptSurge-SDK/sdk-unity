@@ -5,6 +5,7 @@ namespace PromptSurgeSDK.Packages.PromptSurge.Runtime.Internal
 {
     internal class DialogLayout : MonoBehaviour
     {
+        public RectTransform card;
         public Text header;
         public Text message;
         public Image background;

@@ -53,10 +53,17 @@ namespace PromptSurgeSDK.Internal {
                 onDismiss?.Invoke();
             };
 
-            // Optionally load the header image asynchronously
+            // Hide the card until everything (incl. the header image) is ready — the dim
+            // background stays visible. The presenter reveals it via Show().
+            view.SetDialogActive(false);
+
+            // Optionally load the header image asynchronously before revealing the dialog, so the
+            // user never sees the image pop in at runtime.
             if (!string.IsNullOrEmpty(res.imageUrl)) {
                 yield return LoadHeaderImage(root, view, res.imageUrl);
             }
+
+            view.SetDialogActive(true);
         }
 
         /// Downloads a header image from URL and hands the finished texture to the view.

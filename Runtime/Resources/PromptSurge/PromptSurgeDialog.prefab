@@ -815,13 +815,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ecfe813123e415d8e1c3b0bc5a28e9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  card: {fileID: 2429763387476526748}
   header: {fileID: 7660197055767828551}
   message: {fileID: 3948312354810290939}
   background: {fileID: 4772680259984569493}
   image: {fileID: 8972660665653089368}
   button1: {fileID: 290759330715237063}
   button2: {fileID: 8883890392047225125}
-  dismissButton: {fileID: 6368866225020824826}
 --- !u!1 &7869974177661250718
 GameObject:
   m_ObjectHideFlags: 0

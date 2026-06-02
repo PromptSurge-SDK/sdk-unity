@@ -54,6 +54,12 @@ namespace PromptSurgeSDK.Internal {
                 () => Confirmed?.Invoke());
         }
 
+        public void SetDialogActive(bool active)
+        {
+            if (_layout.card != null)
+                _layout.card.gameObject.SetActive(active);
+        }
+
         /// Reveals the header image at the top of the dialog card once its texture is available.
         public void SetHeaderImage(Texture2D texture) {
             var rawImg = _layout != null ? _layout.image : null;
