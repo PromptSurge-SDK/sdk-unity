@@ -14,6 +14,16 @@ namespace PromptSurgeSDK.Internal {
         public event Action Confirmed;
         public event Action Dismissed;
 
+        /// <summary>
+        /// True once the header image has either landed or definitively failed. The presenter
+        /// waits on this, briefly, before revealing the card — it must never wait on the request
+        /// itself, which has no bounded duration the presenter can rely on.
+        /// </summary>
+        public bool HeaderImageResolved { get; private set; }
+
+        /// <summary>Marks the image as resolved without setting one (it failed, or was empty).</summary>
+        public void MarkHeaderImageResolved() => HeaderImageResolved = true;
+
         public DialogView(DialogLayout layout, PromptResponse res) {
             _layout = layout;
             Bind(res);
@@ -22,10 +32,16 @@ namespace PromptSurgeSDK.Internal {
         // ── Bind ───────────────────────────────────────────────────────────────
 
         private void Bind(PromptResponse res) {
-            var cardColor = ParseHex(res.theme?.backgroundColor) ?? Color.white;
-            var textColor = ParseHex(res.theme?.textColor) ?? new Color(0.10f, 0.12f, 0.18f);
-            var posColor  = ParseHex(res.theme?.positiveButtonColor) ?? new Color(0.07f, 0.62f, 0.50f);
-            var negColor  = ParseHex(res.theme?.negativeButtonColor) ?? new Color(0.55f, 0.55f, 0.60f);
+            // Matches the Android dialog: confirm is filled with the accent colour and labelled in
+            // buttonTextColor; dismiss is flat against the card and labelled in the accent colour.
+            //
+            // This used to paint the dismiss button's BACKGROUND with buttonTextColor, which is a
+            // foreground colour. On `system` and `greyscale` that is white-on-white; on the dark
+            // presets it is a near-black slab. The button was invisible on every shipped preset.
+            var cardColor   = ParseHex(res.theme?.backgroundColor) ?? Color.white;
+            var textColor   = ParseHex(res.theme?.textColor)       ?? new Color(0.10f, 0.12f, 0.18f);
+            var accentColor = ParseHex(res.theme?.accentColor)     ?? new Color(0.07f, 0.62f, 0.50f);
+            var buttonText  = ParseHex(res.theme?.buttonTextColor) ?? Color.white;
 
             if (_layout.background != null) _layout.background.color = cardColor;
 
@@ -39,18 +55,18 @@ namespace PromptSurgeSDK.Internal {
                 _layout.message.color = textColor;
             }
 
-            // Negative (dismiss) button on the left.
+            // Negative (dismiss) button on the left: flat against the card, accent label.
             ConfigureButton(_layout.button1,
                 res.text?.negativeButton ?? Defaults.Text.negativeButton,
-                negColor,
-                posColor, // Text color is like positive button.
+                cardColor,
+                accentColor,
                 () => Dismissed?.Invoke());
 
-            // Positive (accept) button on the right.
+            // Positive (accept) button on the right: accent fill, buttonTextColor label.
             ConfigureButton(_layout.button2,
                 res.text?.positiveButton ?? Defaults.Text.positiveButton,
-                posColor,
-                cardColor, // Text color is like card color.
+                accentColor,
+                buttonText,
                 () => Confirmed?.Invoke());
         }
 
@@ -62,6 +78,7 @@ namespace PromptSurgeSDK.Internal {
 
         /// Reveals the header image at the top of the dialog card once its texture is available.
         public void SetHeaderImage(Texture2D texture) {
+            HeaderImageResolved = true;
             var rawImg = _layout != null ? _layout.image : null;
             if (rawImg == null || texture == null) return;
 

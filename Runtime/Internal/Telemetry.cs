@@ -6,22 +6,31 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class Telemetry {
-        internal const string SdkVersion = "1.0.14";
-        private static readonly string SessionId = Guid.NewGuid().ToString();
+        internal const string SdkVersion = "1.1.0";
+        private const int TimeoutSeconds = 10;
+
+        /// Shared with the prompt fetch so the server can select a copy variant deterministically
+        /// and the resulting events attribute to that same session.
+        internal static readonly string SessionId = Guid.NewGuid().ToString();
 
         internal static void Send(string apiKey, string apiBaseUrl, string eventType,
-                                  string promptId = null, int? servedPromptNumber = null) {
+                                  string promptId = null, int? servedPromptNumber = null,
+                                  string resolvedLocale = null) {
             PromptSurgeRunner.Instance.StartCoroutine(
-                PostEvent(apiKey, apiBaseUrl, eventType, promptId, servedPromptNumber));
+                PostEvent(apiKey, apiBaseUrl, eventType, promptId, servedPromptNumber, resolvedLocale));
         }
 
         private static IEnumerator PostEvent(string apiKey, string apiBaseUrl, string eventType,
-                                             string promptId, int? servedPromptNumber) {
+                                             string promptId, int? servedPromptNumber,
+                                             string resolvedLocale) {
             // Build payload fields. servedPromptNumber must be an unquoted number (not a string).
             var payloadFields = "";
-            if (promptId != null)
-                payloadFields += $"\"promptId\":\"{promptId}\"";
-            if (servedPromptNumber.HasValue)
+            if (!string.IsNullOrEmpty(promptId))
+                payloadFields += $"\"promptId\":\"{Escape(promptId)}\"";
+            if (!string.IsNullOrEmpty(resolvedLocale))
+                payloadFields += (payloadFields.Length > 0 ? "," : "") +
+                                 $"\"resolvedLocale\":\"{Escape(resolvedLocale)}\"";
+            if (servedPromptNumber.HasValue && servedPromptNumber.Value > 0)
                 payloadFields += (payloadFields.Length > 0 ? "," : "") +
                                  $"\"servedPromptNumber\":{servedPromptNumber.Value}";
 
@@ -36,10 +45,10 @@ namespace PromptSurgeSDK.Internal {
     ""eventId"":""{Guid.NewGuid()}"",
     ""timestamp"":""{DateTime.UtcNow:O}"",
     ""sessionId"":""{SessionId}"",
-    ""deviceId"":""{DeviceId()}"",
-    ""appVersion"":""{appVersion}"",
+    ""deviceId"":""{Escape(DeviceId())}"",
+    ""appVersion"":""{Escape(appVersion)}"",
     ""sdkVersion"":""{SdkVersion}"",
-    ""locale"":""{Application.systemLanguage}"",
+    ""locale"":""{Escape(LocaleTag.Current())}"",
     ""platform"":""{Platform()}"",
     ""holdout"":{(HoldoutManager.IsHoldout ? "true" : "false")},
     ""payload"":{{{payloadFields}}}
@@ -54,14 +63,23 @@ namespace PromptSurgeSDK.Internal {
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("X-PromptSurge-Key", apiKey);
             req.SetRequestHeader("Content-Type", "application/json");
+            req.timeout = TimeoutSeconds;
             yield return req.SendWebRequest();
 
-            if (req.result == UnityWebRequest.Result.Success) {
-                Logger.Verbose($"Event accepted: {eventType} (HTTP {req.responseCode})");
-            } else {
-                Logger.Error($"Event send failed: {eventType} — {req.error} (HTTP {req.responseCode})");
-            }
+            var status = req.responseCode;
+            var success = req.result == UnityWebRequest.Result.Success;
+            var error = req.error;
             req.Dispose();
+
+            if (success) {
+                Logger.Verbose($"Event accepted: {eventType} (HTTP {status})");
+            } else if (status == 401 || status == 403) {
+                Logger.Error($"Event '{eventType}' rejected: the API key is not valid (HTTP {status}).");
+            } else if (status == 400) {
+                Logger.Error($"Event '{eventType}' rejected as malformed (HTTP 400) — the SDK and server event schemas disagree.");
+            } else {
+                Logger.Warn($"Event send failed: {eventType} — {error} (HTTP {status})");
+            }
         }
 
         private static string DeviceId() {
@@ -70,14 +88,33 @@ namespace PromptSurgeSDK.Internal {
             return SystemInfo.deviceUniqueIdentifier;
         }
 
+        /// <summary>
+        /// The editor check has to come first. With a bare <c>#if UNITY_IOS</c>, an editor session
+        /// on the iOS build target reported <c>platform: "ios"</c>, so every Play Mode run showed
+        /// up in the dashboard as real iOS traffic.
+        /// </summary>
         private static string Platform() {
-#if UNITY_IOS
+#if UNITY_EDITOR
+            return "unity_editor";
+#elif UNITY_IOS
             return "ios";
 #elif UNITY_ANDROID
             return "android";
 #else
             return "unity_editor";
 #endif
+        }
+
+        /// Minimal JSON string escaping. The event JSON is hand-built, and a device id or an app
+        /// version with a quote or a backslash in it would otherwise produce a 400 for the batch.
+        private static string Escape(string value) {
+            if (string.IsNullOrEmpty(value)) return "";
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
         }
     }
 }

@@ -1,0 +1,15 @@
+<!--
+  IL2CPP managed code stripping at Medium or High removes types and fields that are only ever
+  reached by reflection. Every model the SDK sends to JsonUtility is exactly that: the fields
+  are populated by name, never referenced in code. Stripped, the dialog silently falls back to
+  bundled English copy - on the customer's device build only, never in the editor, which is the
+  worst possible place for it to first appear.
+
+  The models also carry [Preserve]. This file is the belt to that pair of braces: it keeps the
+  whole assembly, which is under a thousand lines and costs nothing worth measuring.
+
+  Unity collects link.xml from packages as well as from Assets, so this needs no registration.
+-->
+<linker>
+  <assembly fullname="PromptSurge.Runtime" preserve="all" />
+</linker>
