@@ -75,7 +75,17 @@ If nothing appears at all in a device build, `Initialize` was never called.
 - **EventSystem:** the SDK creates one if your scene has none, so its buttons always respond. Ship your own to keep input handling under your control.
 - **Editor:** every entry point is a no-op in Play Mode — no dialog, no native sheet, no billed events, and no `PlayerPrefs` written.
 - **IL2CPP:** the SDK ships `Runtime/link.xml` and `[Preserve]` attributes, so managed stripping at Medium or High cannot remove the JSON model fields.
-- **No sentiment gating:** Both buttons fire `SKStoreReviewController` / `ReviewManager` — compliant with Apple guideline 5.6.1 and Google Play policy.
+- **The two buttons differ:** confirm fires `SKStoreReviewController` / `ReviewManager`, dismiss does not. A dismissal records the cooldown and sends `pre_prompt_dismissed`. This is deliberate: a player who says "not now" is answering the question, so the rating sheet stays closed.
+
+## The copy is where the policy risk lives
+
+The default copy is a plain call to action ("Leave a review?"), and it must stay one. Because
+only the confirm button opens the native sheet, rewriting the four strings into a satisfaction
+question - "Are you enjoying the game?", "How are we doing?" - turns the dialog into a filter
+that routes only happy players to the store. That is the pattern Apple guideline 5.6.1 and
+Google Play's in-app review policy are about, and the consequence lands on your listing.
+
+Keep it a request to review. Do not make it a question about how the player feels.
 
 ## QA
 

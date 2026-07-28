@@ -140,8 +140,12 @@ namespace PromptSurgeSDK.Internal {
     internal static class Defaults {
         // Kept verbatim in step with the Android and iOS SDKs so the same game shows the same
         // offline copy on every platform.
+        //
+        // The title is a call to action, not a satisfaction question, and must stay one: only the
+        // confirm button opens the native sheet, so an "Are you enjoying...?" title would make
+        // this a sentiment filter (Apple 5.6.1, Google Play policy). See docs/conventions.md.
         internal static readonly PromptText Text = new PromptText {
-            title          = "Enjoying this app?",
+            title          = "Leave a review?",
             body           = "Reviews help other people discover apps like this. Got a moment?",
             positiveButton = "Sure",
             negativeButton = "Not now",
