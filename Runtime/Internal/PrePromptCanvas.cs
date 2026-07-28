@@ -160,29 +160,39 @@ namespace PromptSurgeSDK.Internal {
         }
 
         /// Downloads a header image from URL and hands the finished texture to the view.
+        ///
+        /// The request is disposed LAST, after the view has the texture, never between GetContent
+        /// and the handover. DownloadHandlerTexture.GetContent returns a Texture2D owned by the
+        /// request's download handler, and UnityWebRequest.Dispose disposes that handler; whether
+        /// an extracted texture survives it is Unity-version dependent. Disposing first therefore
+        /// risks handing the view an object that is already destroyed, whose symptom is exactly
+        /// "the card image stopped showing". This ordering is the one with external confirmation
+        /// behind it - it is what master shipped and what was confirmed working on a device - so
+        /// the finally block keeps every exit path on it while still releasing the request.
         private static IEnumerator LoadHeaderImage(GameObject root, DialogView view, string url) {
             var req = UnityWebRequestTexture.GetTexture(url);
             req.timeout = ImageRequestTimeoutSeconds;
             yield return req.SendWebRequest();
 
-            var success = req.result == UnityWebRequest.Result.Success;
-            var error = req.error;
-            Texture2D texture = null;
-            if (success) texture = DownloadHandlerTexture.GetContent(req);
-            req.Dispose();
+            try {
+                if (root == null) yield break; // dialog was dismissed
 
-            if (root == null) yield break; // dialog was dismissed
-            if (!success) {
-                Logger.Info($"Header image not loaded, showing the dialog without it: {error}");
-                view.MarkHeaderImageResolved();
-                yield break;
-            }
-            if (texture == null) {
-                view.MarkHeaderImageResolved();
-                yield break;
-            }
+                if (req.result != UnityWebRequest.Result.Success) {
+                    Logger.Info($"Header image not loaded, showing the dialog without it: {req.error}");
+                    view.MarkHeaderImageResolved();
+                    yield break;
+                }
 
-            view.SetHeaderImage(texture);
+                var texture = DownloadHandlerTexture.GetContent(req);
+                if (texture == null) {
+                    view.MarkHeaderImageResolved();
+                    yield break;
+                }
+
+                view.SetHeaderImage(texture);
+            } finally {
+                req.Dispose();
+            }
         }
 
         /// <summary>
