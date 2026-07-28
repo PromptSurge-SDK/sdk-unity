@@ -84,3 +84,52 @@ If nothing appears at all in a device build, `Initialize` was never called.
 ## Requirements notes
 
 Input handling set to **Input System (New) only**: the dialog works, but the Android back button does not dismiss it — the SDK does not read the new Input System per frame. Tapping outside the card still dismisses. Both **Input Manager (Old)** and **Both** are unaffected.
+
+## Privacy
+
+### What the SDK collects
+
+One identifier per install, and it differs by platform because the underlying device id does:
+on Android `SHA-256(ANDROID_ID + package name)`, on iOS `SystemInfo.deviceUniqueIdentifier`, which
+Unity already hashes per app. No raw device identifier is stored, transmitted or logged, and no
+advertising identifier is used anywhere.
+
+Alongside it, each event records which prompt step happened (`pre_prompt_shown`,
+`pre_prompt_confirmed`, `pre_prompt_dismissed`, `native_prompt_requested`, `initialize`,
+`first_open`), your app version, the SDK version and the device locale. Nothing else.
+
+**There is no IDFA and no ATT prompt.** You do not need to add one because of this SDK.
+
+### iOS builds: the privacy manifest is injected for you
+
+`Editor/PromptSurgePrivacyManifest.cs` runs after Unity generates the Xcode project and adds a
+`PrivacyInfo.xcprivacy` to the **UnityFramework** target - the binary this SDK's code is actually
+compiled into. Your own app's manifest, if you have one, is left alone; Apple aggregates one per
+binary.
+
+This is not cosmetic. `PlayerPrefs` is `UserDefaults` on iOS, which is a required-reason API, so a
+Unity game shipping this SDK without the manifest gets **ITMS-91053** at App Store submission from
+a build that compiled and ran perfectly. Nothing in Unity warns about it.
+
+If you post-process the Xcode project yourself, run your step before ours or check the file is
+still there: our callback order is 100.
+
+### What to declare in each store
+
+**App Store Connect &rsaquo; App Privacy**
+
+| Data type | Purpose | Linked to identity | Used for tracking |
+| --- | --- | --- | --- |
+| Identifiers &rsaquo; Device ID | Analytics | **No** | **No** |
+| Usage Data &rsaquo; Product Interaction | Analytics | **No** | **No** |
+
+**Google Play &rsaquo; Data Safety**
+
+| Data type | Collected | Shared | Purpose | Linked to user |
+| --- | --- | --- | --- | --- |
+| Device or other IDs | Yes | No | Analytics | **No** |
+| App activity &rsaquo; App interactions | Yes | No | Analytics | **No** |
+
+Shared is No in both: the data goes to PromptSurge as your processor to run the feature you
+integrated, not on to a third party. Encrypted in transit: yes, every request is HTTPS. Declare
+these in addition to whatever the rest of your game collects.
