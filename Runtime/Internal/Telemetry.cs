@@ -13,6 +13,26 @@ namespace PromptSurgeSDK.Internal {
         /// and the resulting events attribute to that same session.
         internal static readonly string SessionId = Guid.NewGuid().ToString();
 
+        /// PlayerPrefs key marking that `first_open` has already been sent on this
+        /// install. Mirrors iOS's `ps_first_open_fired` and Android's
+        /// KEY_FIRST_OPEN_FIRED, deliberately including the name, so the three
+        /// platforms are greppable as one thing.
+        private const string FirstOpenKey = "ps_first_open_fired";
+
+        /// Fires `initialize` (every launch) and `first_open` (once per install).
+        ///
+        /// Order matters: the flag is written BEFORE the event is sent, so a send
+        /// that fails cannot re-fire first_open on the next launch and inflate
+        /// installs. Losing one first_open is a small undercount; double-counting
+        /// every user with a flaky network is a wrong number that looks fine.
+        internal static void FireLifecycleEvents(string apiKey, string apiBaseUrl) {
+            Send(apiKey, apiBaseUrl, EventTypes.Initialize);
+            if (PlayerPrefs.GetInt(FirstOpenKey, 0) == 1) return;
+            PlayerPrefs.SetInt(FirstOpenKey, 1);
+            PlayerPrefs.Save();
+            Send(apiKey, apiBaseUrl, EventTypes.FirstOpen);
+        }
+
         internal static void Send(string apiKey, string apiBaseUrl, string eventType,
                                   string promptId = null, int? servedPromptNumber = null,
                                   string resolvedLocale = null) {

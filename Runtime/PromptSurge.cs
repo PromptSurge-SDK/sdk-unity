@@ -59,6 +59,12 @@ namespace PromptSurgeSDK {
             _apiBaseUrl  = apiBaseUrl;
             _initialized = true;
             Logger.Info($"Initialized — sdkVersion={Telemetry.SdkVersion} apiBaseUrl={apiBaseUrl}");
+
+            // Fired here, after _initialized is set and inside the !UNITY_EDITOR
+            // branch, so Play Mode stays a no-op exactly like every other call.
+            // Same shape as Telemetry.fireLifecycleEvents() on iOS and
+            // Telemetry.kt's KEY_FIRST_OPEN_FIRED on Android.
+            Telemetry.FireLifecycleEvents(_apiKey, _apiBaseUrl);
 #endif
         }
 
