@@ -1,10 +1,12 @@
 # PromptSurge Unity SDK
 
-Unified Android + iOS review prompt SDK for Unity 2021.3+. Shows a pre-prompt dialog before triggering the native OS review sheet, increasing tap-through rates.
+Unified Android + iOS review prompt SDK for Unity 2022.3+. Shows a pre-prompt dialog before triggering the native OS review sheet, increasing tap-through rates.
 
 ## Requirements
 
-- Unity 2021.3 LTS or later
+- Unity 2022.3 LTS or later. The package is pure C# with native shims and has no known 2022.3-only
+  API in it, so older Unity versions may well work - but none has been compiled and they are
+  unsupported. If you need an older LTS, open an issue and say which one.
 - Android: Play Store distribution, `minSdkVersion 21`
 - iOS: iOS 14+ deployment target
 
