@@ -59,12 +59,41 @@ void OnLevelComplete() {
 
 ## Diagnostics
 
-Errors and warnings always print, whatever the log level: a rejected API key, a failed fetch, a missing prefab and a suppressed dialog each say so by name. `SetLogLevel(LogLevel.Info)` adds a line per decision, `LogLevel.Verbose` adds per-event delivery results. Filter the console for `[PromptSurge]`.
+Errors and warnings always print, whatever the log level: a rejected API key, a failed fetch and a missing prefab each say so by name.
+
+**A suppressed dialog usually does not.** The two server-side suppressions - impression cap and deleted app - are warnings and always print. But warm-up, holdout, both cooldowns and opted-out are logged at **Info**, and `LogLevel.None` is the default. Those four cover every reason a correctly wired integration shows nothing, so the most confusing case is also the quietest one:
+
+```csharp
+PromptSurge.SetLogLevel(LogLevel.Info);
+```
+
+Do that first, before anything else in this section. `LogLevel.Verbose` adds per-event delivery results. Filter the console for `[PromptSurge]`.
 
 If nothing appears at all in a device build, `Initialize` was never called.
 
+### Nothing is showing and I do not know why
+
+With `LogLevel.Info` set, the SDK prints exactly which of these it hit, in this order. Without it, all of them are silent.
+
+| What you will see | What it means |
+|---|---|
+| *(nothing at all, even at Info)* | `Initialize` was never called, or you are in the **Editor** - the SDK is a deliberate no-op there. Build to a device. |
+| `Initialize was called with an empty API key...` (error) | Always prints. The SDK is not active. |
+| `The API key does not start with 'ps_live_'...` (warning) | Always prints. Probably a test key or a key from another platform. |
+| `Skipping — user is opted out.` | `SetOptedOut(true)` was called at some point; it persists. |
+| `Warm-up phase — firing native review to build baseline.` | **The one that catches every new integration.** See Behaviour below. |
+| `Holdout group — firing native review directly.` | This device is in the 10% control group, for its lifetime. Try another device. |
+| `Rate limited: pre-prompt shown N days ago, cooldown is 90 days.` | Already shown on this device. `ClearRateLimitForTesting()` resets it. |
+| `Rate limited: pre-prompt dismissed N days ago, cooldown is 7 days.` | Dismissed on this device. Same reset. |
+| `Skipping — a review request is already in flight.` | Two calls raced; harmless. |
+| `Monthly impression limit reached...` (warning) | Always prints. Plan cap spent; clears when the billing period rolls over. |
+| `This app was deleted in the PromptSurge admin panel...` (warning) | Always prints. Restore the app to clear it. |
+
+In every one of these cases the **native** review sheet still fires where the platform allows it. A missing pre-prompt does not mean nothing happened.
+
 ## Behaviour
 
+- **Warm-up phase:** a brand-new app shows **no pre-prompt at all** until it has recorded **50 distinct devices** firing `native_prompt_requested`. Until then every `RequestReview()` fires the native store review directly, which is what builds the baseline the whole product measures lift against. Default mode is `once` - one warm-up for the app's lifetime, not per release. **A test device will never reach 50 on its own**, so this is the expected state during an integration, and it is why "the dialog never appears" is usually not a bug. Turn it off for an app from its overview page in the dashboard (Warm-up control), or leave it and test with `LogLevel.Info` so you can see it happening.
 - **Holdout group:** 10% of devices silently skipped (stored in `PlayerPrefs`).
 - **Rate limiting:** 90-day cooldown after shown; 7-day after dismiss. The cooldown is recorded when the dialog actually appears, not when it is requested.
 - **Impression limit:** When your plan's monthly cap is reached the API returns `402`. The SDK persists this in `PlayerPrefs`, suppresses the dialog and fires the native OS review sheet directly. The flag clears on the next successful response, i.e. when the billing period rolls over.
