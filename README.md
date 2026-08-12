@@ -20,11 +20,11 @@ In Unity: **Window → Package Manager → + → Add package from git URL**
 https://github.com/PromptSurge-SDK/sdk-unity.git
 ```
 
-Pin a version by appending `#v1.1.0`. Without a tag the Package Manager tracks the default branch, which moves.
+Pin a version by appending `#v1.1.1`. Without a tag the Package Manager tracks the default branch, which moves.
 
 ### Option B — Local tarball
 
-Download `promptsurge-unity-1.1.0.tgz` and use **Add package from tarball**.
+Download `promptsurge-unity-1.1.1.tgz` and use **Add package from tarball**.
 
 ## Android dependency
 
@@ -141,19 +141,25 @@ Alongside it, each event records which prompt step happened (`pre_prompt_shown`,
 
 **There is no IDFA and no ATT prompt.** You do not need to add one because of this SDK.
 
-### iOS builds: the privacy manifest is injected for you
+### iOS builds: you do not need a privacy manifest for this SDK
 
-`Editor/PromptSurgePrivacyManifest.cs` runs after Unity generates the Xcode project and adds a
-`PrivacyInfo.xcprivacy` to the **UnityFramework** target - the binary this SDK's code is actually
-compiled into. Your own app's manifest, if you have one, is left alone; Apple aggregates one per
-binary.
+**This SDK ships no `PrivacyInfo.xcprivacy` and does not need one.** It has no framework of its own -
+its C# compiles into **UnityFramework**, and Unity already writes that target's manifest for you.
 
-This is not cosmetic. `PlayerPrefs` is `UserDefaults` on iOS, which is a required-reason API, so a
-Unity game shipping this SDK without the manifest gets **ITMS-91053** at App Store submission from
-a build that compiled and ran perfectly. Nothing in Unity warns about it.
+The only required-reason API the SDK touches is `UserDefaults`, and it only ever reaches it through
+`PlayerPrefs`. Unity's own API, so Unity's own declaration: the generated
+`UnityFramework/PrivacyInfo.xcprivacy` carries `NSPrivacyAccessedAPICategoryUserDefaults` with
+reason **CA92.1**, annotated *"Used for PlayerPrefs API"*. The native shim
+(`Runtime/Plugins/iOS/PromptSurgeNative.mm`) uses only StoreKit and UIKit, which are not
+required-reason APIs. There is nothing left for us to declare.
 
-If you post-process the Xcode project yourself, run your step before ours or check the file is
-still there: our callback order is 100.
+**One version floor to know about.** Unity emits that declaration from **2022.3.18f1** onward (and
+2021.3.35f1 / 2023.2.7f1 on the older streams). On 2022.3.0-2022.3.17 it is absent, and a build can
+hit **ITMS-91053** at App Store submission from a project that compiled and ran perfectly. Update
+the Editor to a current 2022.3 patch, or add the CA92.1 entry to your own manifest by hand.
+
+Your app's own manifest, if you have one, is unaffected either way - Apple aggregates one per
+binary, and your app and UnityFramework are different binaries.
 
 ### What to declare in each store
 

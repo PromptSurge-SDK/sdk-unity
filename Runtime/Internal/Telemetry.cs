@@ -6,7 +6,7 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class Telemetry {
-        internal const string SdkVersion = "1.1.0";
+        internal const string SdkVersion = "1.1.1";
         private const int TimeoutSeconds = 10;
 
         /// Shared with the prompt fetch so the server can select a copy variant deterministically

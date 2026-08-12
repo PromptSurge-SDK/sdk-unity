@@ -1,6 +1,6 @@
 {
   "name": "me.promptsurge.sdk-unity",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "displayName": "PromptSurge",
   "description": "AI-powered review prompts for Unity games on Android and iOS.",
   "unity": "2022.3",
