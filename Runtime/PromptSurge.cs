@@ -34,8 +34,14 @@ namespace PromptSurgeSDK {
             Logger.Info($"Log level set to {level}.");
         }
 
+        /// <param name="verifyToken">Optional one-shot app-ownership token from the PromptSurge
+        /// dashboard's Verify page. It rides along with the event batches and can be removed from
+        /// your code once the dashboard shows the app as verified. Appended after apiBaseUrl so
+        /// existing positional calls keep meaning what they meant; pass it by name:
+        /// <c>PromptSurge.Initialize("ps_live_...", verifyToken: "vt_...")</c>.</param>
         public static void Initialize(string apiKey,
-                                      string apiBaseUrl = "https://api.promptsurge.me") {
+                                      string apiBaseUrl = "https://api.promptsurge.me",
+                                      string verifyToken = null) {
 #if UNITY_EDITOR
             Logger.Info("Initialize ignored in the Unity Editor — the SDK is a no-op here by design.");
             return;
@@ -58,6 +64,10 @@ namespace PromptSurgeSDK {
             _apiKey      = key;
             _apiBaseUrl  = apiBaseUrl;
             _initialized = true;
+            // Set before FireLifecycleEvents so the token rides on the very first batch —
+            // `initialize` is often the only event a brand-new install sends for a while.
+            Telemetry.VerifyToken =
+                string.IsNullOrWhiteSpace(verifyToken) ? null : verifyToken.Trim();
             Logger.Info($"Initialized — sdkVersion={Telemetry.SdkVersion} apiBaseUrl={apiBaseUrl}");
 
             // Fired here, after _initialized is set and inside the !UNITY_EDITOR

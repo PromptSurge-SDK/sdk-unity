@@ -59,6 +59,19 @@ void OnLevelComplete() {
 }
 ```
 
+### Verifying app ownership (SDK 1.2.0+)
+
+The dashboard's Verify page hands you a one-shot token that proves this store listing is
+yours. Pass it by name once at initialisation (it is deliberately the last parameter, so
+existing positional calls keep working):
+
+```csharp
+PromptSurge.Initialize("ps_live_your_key_here", verifyToken: "vt_xxxx");
+```
+
+It rides along with the event batches; remove it from your code once the dashboard shows the
+app as verified — it has no effect after that.
+
 ## Diagnostics
 
 Errors and warnings always print, whatever the log level: a rejected API key, a failed fetch and a missing prefab each say so by name.

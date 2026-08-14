@@ -6,12 +6,18 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class Telemetry {
-        internal const string SdkVersion = "1.1.1";
+        internal const string SdkVersion = "1.2.0";
         private const int TimeoutSeconds = 10;
 
         /// Shared with the prompt fetch so the server can select a copy variant deterministically
         /// and the resulting events attribute to that same session.
         internal static readonly string SessionId = Guid.NewGuid().ToString();
+
+        /// One-shot app-ownership token from the dashboard's Verify page, set by Initialize.
+        /// Rides along with every batch while set - the server consumes it once, and the
+        /// integrator removes it from code after the dashboard shows the app as verified.
+        /// Mirrors EventBus.verifyToken on Android and Telemetry.verifyToken on iOS.
+        internal static string VerifyToken;
 
         /// PlayerPrefs key marking that `first_open` has already been sent on this
         /// install. Mirrors iOS's `ps_first_open_fired` and Android's
@@ -58,6 +64,15 @@ namespace PromptSurgeSDK.Internal {
             // schema's min(1) check doesn't reject the event.
             var appVersion = string.IsNullOrEmpty(Application.version) ? "0.0.0" : Application.version;
 
+            // Batch-level, sibling of "events", exactly where Android's EventBatchDto puts it.
+            // The server declares verifyToken .optional(), which rejects an explicit null — the
+            // key must be ABSENT when unset, so the hand-built JSON omits it entirely rather
+            // than writing null.
+            var verifyField = string.IsNullOrEmpty(VerifyToken)
+                ? ""
+                : $@",
+  ""verifyToken"":""{Escape(VerifyToken)}""";
+
             // Wrap in a batch envelope: the server expects { "events": [...] }.
             var json = $@"{{
   ""events"":[{{
@@ -72,7 +87,7 @@ namespace PromptSurgeSDK.Internal {
     ""platform"":""{Platform()}"",
     ""holdout"":{(HoldoutManager.IsHoldout ? "true" : "false")},
     ""payload"":{{{payloadFields}}}
-  }}]
+  }}]{verifyField}
 }}";
 
             Logger.Info($"Sending event: {eventType}" +
