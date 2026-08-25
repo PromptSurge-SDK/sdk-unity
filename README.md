@@ -12,7 +12,7 @@ Unified Android + iOS review prompt SDK for Unity 2022.3+. Shows a pre-prompt di
 
 ## Installation
 
-### Option A — Unity Package Manager (Git URL)
+### Option A - Unity Package Manager (Git URL)
 
 In Unity: **Window → Package Manager → + → Add package from git URL**
 
@@ -22,7 +22,7 @@ https://github.com/PromptSurge-SDK/sdk-unity.git
 
 Pin a version by appending `#v1.1.1`. Without a tag the Package Manager tracks the default branch, which moves.
 
-### Option B — Local tarball
+### Option B - Local tarball
 
 Download `promptsurge-unity-1.1.1.tgz` and use **Add package from tarball**.
 
@@ -33,7 +33,7 @@ The SDK uses Google Play's In-App Review API. Add the dependency to your project
 **With [External Dependency Manager (EDM4U)](https://github.com/googlesamples/unity-jar-resolver):**  
 The included `Editor/PromptSurgeDependencies.xml` is picked up automatically. No manual step needed.
 
-**Without EDM4U** — add to `Assets/Plugins/Android/mainTemplate.gradle`:
+**Without EDM4U** - add to `Assets/Plugins/Android/mainTemplate.gradle`:
 ```groovy
 dependencies {
     implementation 'com.google.android.play:review:2.0.1'
@@ -70,7 +70,7 @@ PromptSurge.Initialize("ps_live_your_key_here", verifyToken: "vt_xxxx");
 ```
 
 It rides along with the event batches; remove it from your code once the dashboard shows the
-app as verified — it has no effect after that.
+app as verified - it has no effect after that.
 
 ## Diagnostics
 
@@ -95,12 +95,12 @@ With `LogLevel.Info` set, the SDK prints exactly which of these it hit, in this 
 | *(nothing at all, even at Info)* | `Initialize` was never called, or you are in the **Editor** - the SDK is a deliberate no-op there. Build to a device. |
 | `Initialize was called with an empty API key...` (error) | Always prints. The SDK is not active. |
 | `The API key does not start with 'ps_live_'...` (warning) | Always prints. Probably a test key or a key from another platform. |
-| `Skipping — user is opted out.` | `SetOptedOut(true)` was called at some point; it persists. |
-| `Warm-up phase — firing native review to build baseline.` | **The one that catches every new integration.** See Behaviour below. |
-| `Holdout group — firing native review directly.` | This device is in the 10% control group, for its lifetime. Try another device. |
+| `Skipping - user is opted out.` | `SetOptedOut(true)` was called at some point; it persists. |
+| `Warm-up phase - firing native review to build baseline.` | **The one that catches every new integration.** See Behaviour below. |
+| `Holdout group - firing native review directly.` | This device is in the 10% control group, for its lifetime. Try another device. |
 | `Rate limited: pre-prompt shown N days ago, cooldown is 90 days.` | Already shown on this device. `ClearRateLimitForTesting()` resets it. |
 | `Rate limited: pre-prompt dismissed N days ago, cooldown is 7 days.` | Dismissed on this device. Same reset. |
-| `Skipping — a review request is already in flight.` | Two calls raced; harmless. |
+| `Skipping - a review request is already in flight.` | Two calls raced; harmless. |
 | `Monthly impression limit reached...` (warning) | Always prints. Plan cap spent; clears when the billing period rolls over. |
 | `This app was deleted in the PromptSurge admin panel...` (warning) | Always prints. Restore the app to clear it. |
 
@@ -117,7 +117,7 @@ In every one of these cases the **native** review sheet still fires where the pl
 - **Fallback:** Bundled English copy shown if the API is unreachable.
 - **Dismissing:** the confirm and dismiss buttons, a tap outside the card, and the Android back button all close the dialog. The dialog's canvas is disabled until the card is on screen, so a slow header image never blocks input.
 - **EventSystem:** the SDK creates one if your scene has none, so its buttons always respond. Ship your own to keep input handling under your control.
-- **Editor:** every entry point is a no-op in Play Mode — no dialog, no native sheet, no billed events, and no `PlayerPrefs` written.
+- **Editor:** every entry point is a no-op in Play Mode - no dialog, no native sheet, no billed events, and no `PlayerPrefs` written.
 - **IL2CPP:** the SDK ships `Runtime/link.xml` and `[Preserve]` attributes, so managed stripping at Medium or High cannot remove the JSON model fields.
 - **The two buttons differ:** confirm fires `SKStoreReviewController` / `ReviewManager`, dismiss does not. A dismissal records the cooldown and sends `pre_prompt_dismissed`. This is deliberate: a player who says "not now" is answering the question, so the rating sheet stays closed.
 
@@ -137,7 +137,7 @@ Keep it a request to review. Do not make it a question about how the player feel
 
 ## Requirements notes
 
-Input handling set to **Input System (New) only**: the dialog works, but the Android back button does not dismiss it — the SDK does not read the new Input System per frame. Tapping outside the card still dismisses. Both **Input Manager (Old)** and **Both** are unaffected.
+Input handling set to **Input System (New) only**: the dialog works, but the Android back button does not dismiss it - the SDK does not read the new Input System per frame. Tapping outside the card still dismisses. Both **Input Manager (Old)** and **Both** are unaffected.
 
 ## Privacy
 
