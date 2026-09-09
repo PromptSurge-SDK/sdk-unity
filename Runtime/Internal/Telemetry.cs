@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -104,16 +105,48 @@ namespace PromptSurgeSDK.Internal {
             var status = req.responseCode;
             var success = req.result == UnityWebRequest.Result.Success;
             var error = req.error;
+            // Read the body BEFORE Dispose: the download handler is gone afterwards, and card 349
+            // phase 4 needs what the server answered with.
+            var body = req.downloadHandler != null ? req.downloadHandler.text : null;
             req.Dispose();
 
             if (success) {
                 Logger.Verbose($"Event accepted: {eventType} (HTTP {status})");
+                ApplyAssignment(body);
             } else if (status == 401 || status == 403) {
                 Logger.Error($"Event '{eventType}' rejected: the API key is not valid (HTTP {status}).");
             } else if (status == 400) {
                 Logger.Error($"Event '{eventType}' rejected as malformed (HTTP 400) — the SDK and server event schemas disagree.");
             } else {
                 Logger.Warn($"Event send failed: {eventType} — {error} (HTTP {status})");
+            }
+        }
+
+        /// <summary>
+        /// Card 349 phase 4: takes the holdout group out of <c>{"assignment":{"holdout":true}}</c>
+        /// on a 202 and hands it to <see cref="HoldoutManager.AdoptFromServer"/>.
+        ///
+        /// Every failure here is silent by design. The batch was already accepted by the time this
+        /// runs, so a body that is missing, empty, truncated or shaped differently from what this
+        /// SDK version expects must never turn a successful send into a logged failure - the
+        /// device simply keeps its local group until the next event.
+        ///
+        /// An ABSENT assignment means "keep what you have", never "you are in the treatment
+        /// group": the server omits the field when a batch speaks for more than one device, and
+        /// the overwhelming majority of devices are in the treatment group, so reading absence as
+        /// false would close nothing and quietly overwrite real answers.
+        /// </summary>
+        private static void ApplyAssignment(string body) {
+            if (string.IsNullOrEmpty(body)) return;
+            try {
+                // Verbatim string: the doubled quotes are literal quotes in the pattern.
+                var m = Regex.Match(
+                    body,
+                    @"""assignment""\s*:\s*\{[^{}]*""holdout""\s*:\s*(true|false)");
+                if (!m.Success) return;
+                HoldoutManager.AdoptFromServer(m.Groups[1].Value == "true");
+            } catch (Exception e) {
+                Logger.Verbose($"Assignment not applied: {e.Message}");
             }
         }
 
