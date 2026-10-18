@@ -176,10 +176,17 @@ Input handling set to **Input System (New) only**: the dialog works, but the And
 
 ### What the SDK collects
 
-One identifier per install, and it differs by platform because the underlying device id does:
-on Android `SHA-256(ANDROID_ID + package name)`, on iOS `SystemInfo.deviceUniqueIdentifier`, which
-Unity already hashes per app. No raw device identifier is stored, transmitted or logged, and no
-advertising identifier is used anywhere.
+One identifier per device: Unity's own `SystemInfo.deviceUniqueIdentifier`, sent as Unity provides
+it. On Android that is an MD5 hash of the `ANDROID_ID`. On iOS it is Apple's `identifierForVendor`
+(IDFV), **not hashed** - Unity's iOS trampoline returns `identifierForVendor.UUIDString`. The IDFV
+is not the advertising identifier: Apple scopes it to one vendor's apps on one device and resets it
+when all of that vendor's apps are removed. The SDK does not write the identifier to its logs, and
+no advertising identifier is used anywhere.
+
+This differs from the native Android and iOS SDKs, which send
+`SHA-256(device identifier + package or bundle ID)`. Doing the same here would give every existing
+device a new identifier, so it waits for a Unity release that ships for other reasons as well. The
+PromptSurge Privacy Policy describes both.
 
 Alongside it, each event records which prompt step happened (`pre_prompt_shown`,
 `pre_prompt_confirmed`, `pre_prompt_dismissed`, `native_prompt_requested`, `initialize`,

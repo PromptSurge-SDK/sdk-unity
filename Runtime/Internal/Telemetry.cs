@@ -151,8 +151,11 @@ namespace PromptSurgeSDK.Internal {
         }
 
         private static string DeviceId() {
-            // SHA-256 is not available without extra packages; use SystemInfo.deviceUniqueIdentifier
-            // which Unity already hashes on most platforms.
+            // Unity's own identifier, sent as Unity provides it: MD5(ANDROID_ID) on Android, the RAW
+            // identifierForVendor UUID on iOS (not hashed). The native SDKs send
+            // SHA-256(id + package/bundle); doing the same here gives every device a new id, so it
+            // waits for a release that ships for other reasons too (card 625). The Privacy Policy
+            // describes this exactly - change it in the same commit as this line.
             return SystemInfo.deviceUniqueIdentifier;
         }
 
