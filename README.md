@@ -20,11 +20,11 @@ In Unity: **Window → Package Manager → + → Add package from git URL**
 https://github.com/PromptSurge-SDK/sdk-unity.git
 ```
 
-Pin a version by appending `#v1.1.1`. Without a tag the Package Manager tracks the default branch, which moves.
+Pin a version by appending `#v1.3.0`. Without a tag the Package Manager tracks the default branch, which moves.
 
 ### Option B - Local tarball
 
-Download `promptsurge-unity-1.1.1.tgz` and use **Add package from tarball**.
+Run `npm pack` in this folder (or in a checkout of the mirror at the tag you want) and use **Add package from tarball** on the `.tgz` it writes.
 
 ## Android dependency
 

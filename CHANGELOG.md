@@ -4,9 +4,8 @@ The version is `version` in `package.json` (and `Telemetry.SdkVersion`, which mu
 the public mirror (`PromptSurge-SDK/sdk-unity`) with `v<version>` when it changes; tags are never
 moved.
 
-## Unreleased (proposed 1.3.0)
+## 1.3.0 - 2026-10-19
 
-Not released. `package.json` and `Telemetry.SdkVersion` are still `1.2.0` and no tag has moved.
 
 ### Changed
 
