@@ -22,7 +22,7 @@ namespace PromptSurgeSDK.Internal {
     ///   - the scrim, the back button and an EventSystem check all provide a way out.
     /// </summary>
     internal static class PrePromptCanvas {
-        // Loaded via Resources.LoadAsync — lives at Resources/PromptSurge/PromptSurgeDialog.prefab.
+        // Loaded via Resources.LoadAsync - lives at Resources/PromptSurge/PromptSurgeDialog.prefab.
         private const string PrefabResourcePath = "PromptSurge/PromptSurgeDialog";
 
         /// Hard timeout on the image request itself.
@@ -37,7 +37,7 @@ namespace PromptSurgeSDK.Internal {
 
         /// <summary>
         /// Shows the dialog.
-        /// <paramref name="onShown"/> fires when the card is actually visible — that is the moment
+        /// <paramref name="onShown"/> fires when the card is actually visible - that is the moment
         /// the impression becomes real, and the only moment it should be billed.
         /// <paramref name="onFailed"/> fires when no dialog could be presented at all. It is a
         /// separate callback on purpose: routing that case to <paramref name="onDismiss"/> would
@@ -47,7 +47,7 @@ namespace PromptSurgeSDK.Internal {
         internal static void Show(PromptResponse response, Action onShown, Action onAccept,
                                   Action onDismiss, Action onFailed) {
             var res = response ?? Defaults.Response;
-            Logger.Info($"Showing pre-prompt dialog — locale={res.text?.locale} title=\"{res.text?.title}\"");
+            Logger.Info($"Showing pre-prompt dialog - locale={res.text?.locale} title=\"{res.text?.title}\"");
             PromptSurgeRunner.Instance.StartCoroutine(ShowRoutine(res, onShown, onAccept, onDismiss, onFailed));
         }
 
@@ -85,7 +85,7 @@ namespace PromptSurgeSDK.Internal {
             }
 
             // UGUI buttons do nothing without an EventSystem, and the SDK's prefab does not ship
-            // one. A host with no EventSystem — or one whose EventSystem a scene load destroyed —
+            // one. A host with no EventSystem - or one whose EventSystem a scene load destroyed -
             // would otherwise get a dialog whose buttons are dead.
             EnsureEventSystem();
 
@@ -121,7 +121,7 @@ namespace PromptSurgeSDK.Internal {
                 close(onDismiss);
             };
 
-            // Hide the card until everything (incl. the header image) is ready — the dim
+            // Hide the card until everything (incl. the header image) is ready - the dim
             // background stays behind it. Revealed below.
             view.SetDialogActive(false);
 
@@ -202,7 +202,7 @@ namespace PromptSurgeSDK.Internal {
         private static void EnsureEventSystem() {
             if (EventSystem.current != null && EventSystem.current.isActiveAndEnabled) return;
 
-            Logger.Warn("No active EventSystem found — creating one so the dialog's buttons respond. " +
+            Logger.Warn("No active EventSystem found - creating one so the dialog's buttons respond. " +
                         "Add an EventSystem to your scene to keep input handling under your control.");
             var go = new GameObject("[PromptSurge EventSystem]");
             go.AddComponent<EventSystem>();
@@ -222,7 +222,7 @@ namespace PromptSurgeSDK.Internal {
                 return;
             }
             Logger.Error("Input handling is set to Input System only, but InputSystemUIInputModule " +
-                         "could not be found. The pre-prompt's buttons will not respond — add an " +
+                         "could not be found. The pre-prompt's buttons will not respond - add an " +
                          "EventSystem to your scene.");
 #else
             go.AddComponent<StandaloneInputModule>();

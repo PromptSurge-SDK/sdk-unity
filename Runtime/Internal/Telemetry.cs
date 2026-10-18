@@ -61,12 +61,12 @@ namespace PromptSurgeSDK.Internal {
                 payloadFields += (payloadFields.Length > 0 ? "," : "") +
                                  $"\"servedPromptNumber\":{servedPromptNumber.Value}";
 
-            // Application.version can be empty in editor builds — fall back to "0.0.0" so the
+            // Application.version can be empty in editor builds - fall back to "0.0.0" so the
             // schema's min(1) check doesn't reject the event.
             var appVersion = string.IsNullOrEmpty(Application.version) ? "0.0.0" : Application.version;
 
             // Batch-level, sibling of "events", exactly where Android's EventBatchDto puts it.
-            // The server declares verifyToken .optional(), which rejects an explicit null — the
+            // The server declares verifyToken .optional(), which rejects an explicit null - the
             // key must be ABSENT when unset, so the hand-built JSON omits it entirely rather
             // than writing null.
             var verifyField = string.IsNullOrEmpty(VerifyToken)
@@ -116,9 +116,9 @@ namespace PromptSurgeSDK.Internal {
             } else if (status == 401 || status == 403) {
                 Logger.Error($"Event '{eventType}' rejected: the API key is not valid (HTTP {status}).");
             } else if (status == 400) {
-                Logger.Error($"Event '{eventType}' rejected as malformed (HTTP 400) — the SDK and server event schemas disagree.");
+                Logger.Error($"Event '{eventType}' rejected as malformed (HTTP 400) - the SDK and server event schemas disagree.");
             } else {
-                Logger.Warn($"Event send failed: {eventType} — {error} (HTTP {status})");
+                Logger.Warn($"Event send failed: {eventType} - {error} (HTTP {status})");
             }
         }
 

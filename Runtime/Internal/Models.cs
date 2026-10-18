@@ -45,13 +45,13 @@ namespace PromptSurgeSDK.Internal {
         public string imageUrl;
         /// <summary>
         /// True during the mandatory warm-up phase. SDK fires native review without dialog.
-        /// Never cached — always reflects the live server state.
+        /// Never cached - always reflects the live server state.
         /// </summary>
         public bool warmup;
     }
 
     // ── API wire model (matches actual JSON from /v1/prompts) ────────────────
-    // Fields are flat — no nested "text" object. The theme object is verbatim what
+    // Fields are flat - no nested "text" object. The theme object is verbatim what
     // resolveTheme() in apps/api/src/routes/adminAppearance.ts sends.
 
     [Serializable, Preserve]
@@ -124,7 +124,7 @@ namespace PromptSurgeSDK.Internal {
 
         /// <summary>
         /// True when the decoded object actually looks like a prompt. JsonUtility never throws on
-        /// a shape mismatch — it returns an object with every field left at its default — so
+        /// a shape mismatch - it returns an object with every field left at its default - so
         /// <c>{"error":"invalid_api_key"}</c> used to sail through as a valid response.
         /// </summary>
         internal static bool LooksLikePrompt(APIPromptResponse api) =>
@@ -138,15 +138,19 @@ namespace PromptSurgeSDK.Internal {
     // ── Defaults ─────────────────────────────────────────────────────────────
 
     internal static class Defaults {
-        // Kept verbatim in step with the Android and iOS SDKs so the same game shows the same
-        // offline copy on every platform.
+        // Kept verbatim in step with the Android and iOS SDKs and the server's hardcoded
+        // fallback, so the same game shows the same offline copy on every platform.
         //
-        // The title is a call to action, not a satisfaction question, and must stay one: only the
-        // confirm button opens the native sheet, so an "Are you enjoying...?" title would make
-        // this a sentiment filter (Apple 5.6.1, Google Play policy). See docs/conventions.md.
+        // It is a statement, not a question, and must stay one. Two rules meet here:
+        // - Google's in-app review guidance says an app should not ask the user any questions
+        //   before or while presenting the rating button or card. "Leave a review?" was already
+        //   a question, so the default asks nothing at all and the buttons carry the choice.
+        // - The no-satisfaction-question rule (Apple 5.6.1, Google Play policy): only the confirm
+        //   button opens the native sheet, so an "Are you enjoying...?" title would make this a
+        //   sentiment filter. See docs/conventions.md.
         internal static readonly PromptText Text = new PromptText {
-            title          = "Leave a review?",
-            body           = "Reviews help other people discover apps like this. Got a moment?",
+            title          = "A quick favor",
+            body           = "A short review helps other people discover apps like this.",
             positiveButton = "Sure",
             negativeButton = "Not now",
             locale         = "en",

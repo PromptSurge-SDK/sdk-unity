@@ -8,11 +8,11 @@ namespace PromptSurgeSDK.Internal {
     internal enum PromptFetchOutcome {
         /// Copy to render, from the cache or from the network.
         Prompt,
-        /// 402 — over the monthly impression limit for the current tier.
+        /// 402 - over the monthly impression limit for the current tier.
         LimitExceeded,
-        /// 404 app_deleted — the app was deleted in the admin panel.
+        /// 404 app_deleted - the app was deleted in the admin panel.
         AppDeleted,
-        /// 401/403 — the API key is missing, wrong, or revoked. Never show a dialog for this.
+        /// 401/403 - the API key is missing, wrong, or revoked. Never show a dialog for this.
         Unauthorized,
         /// Network failure, unparseable body, or an unexpected status.
         Unavailable,
@@ -31,7 +31,7 @@ namespace PromptSurgeSDK.Internal {
 
         /// <summary>
         /// The server told us the monthly impression limit is spent. Persisted, cleared by the
-        /// next 200 — which is how it recovers when the billing period rolls over.
+        /// next 200 - which is how it recovers when the billing period rolls over.
         /// </summary>
         internal static bool IsImpressionLimitExceeded => PlayerPrefs.GetInt(LimitKey, 0) == 1;
 
@@ -79,7 +79,7 @@ namespace PromptSurgeSDK.Internal {
             // appVersion drives per-version warm-up buckets server-side. Match the value
             // the SDK reports on events so device counts line up. Older servers ignore it.
             var version = string.IsNullOrEmpty(Application.version) ? "unknown" : Application.version;
-            // The server reads the `locale` query parameter and nothing else — the
+            // The server reads the `locale` query parameter and nothing else - the
             // Accept-Language header this used to send was never inspected by the route.
             var url = apiBaseUrl + "/v1/prompts"
                       + "?locale="     + UnityWebRequest.EscapeURL(LocaleTag.Current())
@@ -104,14 +104,14 @@ namespace PromptSurgeSDK.Internal {
                 case 403:
                     Logger.Error($"API key rejected (HTTP {status}). Check the key passed to " +
                                  "PromptSurge.Initialize() against the one in the admin panel at " +
-                                 "https://admin.promptsurge.me — it should start with 'ps_live_'. " +
+                                 "https://admin.promptsurge.me - it should start with 'ps_live_'. " +
                                  "No pre-prompt will be shown until this is fixed.");
                     onResult(PromptFetchOutcome.Unauthorized, null);
                     yield break;
 
                 case 402:
                     SetFlag(LimitKey, true);
-                    Logger.Warn("Monthly impression limit reached — the native review prompt fires directly. " +
+                    Logger.Warn("Monthly impression limit reached - the native review prompt fires directly. " +
                                 "See https://admin.promptsurge.me/billing");
                     onResult(PromptFetchOutcome.LimitExceeded, null);
                     yield break;
@@ -122,7 +122,7 @@ namespace PromptSurgeSDK.Internal {
                         Logger.Warn("This app was deleted in the PromptSurge admin panel; the pre-prompt is suppressed.");
                         onResult(PromptFetchOutcome.AppDeleted, null);
                     } else {
-                        Logger.Warn($"Prompt endpoint returned 404 for {url} — check the apiBaseUrl.");
+                        Logger.Warn($"Prompt endpoint returned 404 for {url} - check the apiBaseUrl.");
                         onResult(PromptFetchOutcome.Unavailable, null);
                     }
                     yield break;
@@ -142,7 +142,7 @@ namespace PromptSurgeSDK.Internal {
             }
 
             // JsonUtility does not throw on a shape mismatch, it just leaves every field at its
-            // default — so an error body decodes into an empty "prompt". Check the copy is there.
+            // default - so an error body decodes into an empty "prompt". Check the copy is there.
             if (!ApiMapper.LooksLikePrompt(api)) {
                 Logger.Error("Prompt response was missing its copy fields and was discarded. " +
                              "The server returned something that is not a prompt.");
@@ -150,16 +150,16 @@ namespace PromptSurgeSDK.Internal {
                 yield break;
             }
 
-            // A 200 supersedes both suppression flags — this is how an app recovers from a
+            // A 200 supersedes both suppression flags - this is how an app recovers from a
             // transient 404 during a deploy, and from a limit that reset with the billing period.
             SetFlag(LimitKey, false);
             SetFlag(DeletedKey, false);
 
             var result = ApiMapper.Map(api);
-            // Do not cache warm-up responses — they must always reflect live server state
+            // Do not cache warm-up responses - they must always reflect live server state
             // so the counter can advance and warm-up completion is detected promptly.
             if (!api.warmup) SaveCache(body);
-            Logger.Info($"Prompt fetched — warmup={api.warmup} locale={result?.text?.locale} title=\"{result?.text?.title}\"");
+            Logger.Info($"Prompt fetched - warmup={api.warmup} locale={result?.text?.locale} title=\"{result?.text?.title}\"");
             onResult(PromptFetchOutcome.Prompt, result);
         }
 
@@ -192,7 +192,7 @@ namespace PromptSurgeSDK.Internal {
                 var api = JsonUtility.FromJson<APIPromptResponse>(PlayerPrefs.GetString(CacheKey));
                 if (!ApiMapper.LooksLikePrompt(api)) return null;
                 var cached = ApiMapper.Map(api);
-                Logger.Info($"Using cached prompt — locale={cached?.text?.locale}");
+                Logger.Info($"Using cached prompt - locale={cached?.text?.locale}");
                 return cached;
             } catch {
                 return null;

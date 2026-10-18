@@ -25,7 +25,7 @@ namespace PromptSurgeSDK {
         // ── Public API ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Set the SDK log level. Call before or after Initialize — order doesn't matter.
+        /// Set the SDK log level. Call before or after Initialize - order doesn't matter.
         /// Defaults to <see cref="LogLevel.None"/>, which still emits errors and warnings;
         /// the level only gates informational output.
         /// </summary>
@@ -43,7 +43,7 @@ namespace PromptSurgeSDK {
                                       string apiBaseUrl = "https://api.promptsurge.me",
                                       string verifyToken = null) {
 #if UNITY_EDITOR
-            Logger.Info("Initialize ignored in the Unity Editor — the SDK is a no-op here by design.");
+            Logger.Info("Initialize ignored in the Unity Editor - the SDK is a no-op here by design.");
             return;
 #else
             var key = apiKey != null ? apiKey.Trim() : null;
@@ -64,11 +64,11 @@ namespace PromptSurgeSDK {
             _apiKey      = key;
             _apiBaseUrl  = apiBaseUrl;
             _initialized = true;
-            // Set before FireLifecycleEvents so the token rides on the very first batch —
+            // Set before FireLifecycleEvents so the token rides on the very first batch -
             // `initialize` is often the only event a brand-new install sends for a while.
             Telemetry.VerifyToken =
                 string.IsNullOrWhiteSpace(verifyToken) ? null : verifyToken.Trim();
-            Logger.Info($"Initialized — sdkVersion={Telemetry.SdkVersion} apiBaseUrl={apiBaseUrl}");
+            Logger.Info($"Initialized - sdkVersion={Telemetry.SdkVersion} apiBaseUrl={apiBaseUrl}");
 
             // Fired here, after _initialized is set and inside the !UNITY_EDITOR
             // branch, so Play Mode stays a no-op exactly like every other call.
@@ -79,9 +79,9 @@ namespace PromptSurgeSDK {
         }
 
         /// <summary>
-        /// Debug only. Disables the 90-day / 7-day cooldowns on this device so QA can trigger the
-        /// dialog repeatedly. Persisted in PlayerPrefs, and every suppressed check logs a warning
-        /// while it is on. Never call this from a build you ship.
+        /// Debug only. Disables the 90-day / 7-day cooldowns and the store review quota check on
+        /// this device so QA can trigger the dialog repeatedly. Persisted in PlayerPrefs, and every
+        /// suppressed check logs a warning while it is on. Never call this from a build you ship.
         /// </summary>
         public static void SetRateLimitBypass(bool enabled) {
             RateLimiter.BypassEnabled = enabled;
@@ -113,7 +113,7 @@ namespace PromptSurgeSDK {
 
         /// <summary>
         /// Warms the prompt cache in the background without showing any dialog.
-        /// Call this early — e.g. immediately after Initialize() or at scene load —
+        /// Call this early - e.g. immediately after Initialize() or at scene load -
         /// so the prompt text is already cached when RequestReview() is called at a
         /// high-satisfaction moment. Eliminates the network round-trip delay from
         /// the user-facing trigger point.
@@ -126,48 +126,58 @@ namespace PromptSurgeSDK {
             return;
 #else
             if (!_initialized) {
-                Logger.Error("Prefetch called before Initialize — ignoring.");
+                Logger.Error("Prefetch called before Initialize - ignoring.");
                 return;
             }
             Logger.Info("Prefetching prompt…");
             PromptTextRepository.Fetch(_apiKey, _apiBaseUrl, (outcome, _) =>
-                Logger.Info($"Prompt prefetch complete — outcome={outcome}."));
+                Logger.Info($"Prompt prefetch complete - outcome={outcome}."));
 #endif
         }
 
         /// <summary>
-        /// Fetches the current prompt and shows the pre-prompt dialog if
-        /// rate limits and holdout allow. Does nothing if not initialized.
+        /// Fetches the current prompt and shows the pre-prompt dialog if the cooldowns, the
+        /// store's review quota and the holdout group allow. Does nothing if not initialized.
         /// </summary>
         public static void RequestReview() {
 #if UNITY_EDITOR
-            Logger.Info("RequestReview ignored in the Unity Editor — the SDK is a no-op here by design.");
+            Logger.Info("RequestReview ignored in the Unity Editor - the SDK is a no-op here by design.");
             return;
 #else
             Logger.Info("RequestReview called.");
 
             if (!_initialized) {
-                Logger.Error("RequestReview called before Initialize — ignoring. " +
+                Logger.Error("RequestReview called before Initialize - ignoring. " +
                              "Call PromptSurge.Initialize(apiKey) once at game start.");
                 return;
             }
             if (IsOptedOut) {
-                Logger.Info("Skipping — user is opted out.");
+                Logger.Info("Skipping - user is opted out.");
                 return;
             }
             // Two calls used to stack two dialogs, each a full-screen DontDestroyOnLoad canvas at
             // sorting order 32767. The second one is unreachable behind the first.
             if (_requestInFlight) {
-                Logger.Info("Skipping — a review request is already in flight.");
+                Logger.Info("Skipping - a review request is already in flight.");
                 return;
             }
-            if (HoldoutManager.IsHoldout) {
-                Logger.Info("Holdout group — firing native review directly.");
-                FireNativeReview(recordCooldown: true);
-                return;
-            }
+            // Same order as the iOS and Android SDKs (card 615): cooldown, then the store's
+            // quota, then the holdout branch. Unity used to test holdout FIRST, so a holdout
+            // device skipped the 90-day cooldown and asked the store on every RequestReview()
+            // while iOS and Android control devices waited 90 days - the same experiment
+            // measured a different thing on Unity.
             if (!RateLimiter.CanShow) {
                 return; // RateLimiter logs which cooldown is active.
+            }
+            // The store's own quota, before anything below can reach the native API. A "Sure"
+            // that opens nothing is the failure both stores warn about, so when the quota is
+            // spent there is no pre-prompt AND no native call - warm-up and holdout included, so
+            // both arms of the experiment skip under the same rule.
+            if (!NativeQuotaAllows()) return;
+            if (HoldoutManager.IsHoldout) {
+                Logger.Info("Holdout group - firing native review directly.");
+                FireNativeReview(recordCooldown: true);
+                return;
             }
 
             _requestInFlight = true;
@@ -199,7 +209,7 @@ namespace PromptSurgeSDK {
                 // review directly (same path as holdout) so the event is counted
                 // toward the threshold. Never show the dialog during warm-up.
                 if (res.warmup) {
-                    Logger.Info("Warm-up phase — firing native review to build baseline.");
+                    Logger.Info("Warm-up phase - firing native review to build baseline.");
                     _requestInFlight = false;
                     FireNativeReview(recordCooldown: true);
                     return;
@@ -215,7 +225,7 @@ namespace PromptSurgeSDK {
             PrePromptCanvas.Show(res,
                 onShown: () => {
                     // pre_prompt_shown is the billable unit, so it fires when the card is actually
-                    // on screen — not on fetch success, before the prefab had even loaded.
+                    // on screen - not on fetch success, before the prefab had even loaded.
                     _requestInFlight = false;
                     RateLimiter.RecordShown();
                     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptShown,
@@ -244,6 +254,26 @@ namespace PromptSurgeSDK {
                 });
         }
 
+        /// <summary>
+        /// False, with one Info line saying why and when, while the SDK's own record of native
+        /// requests says the store's quota is spent (<see cref="ReviewQuota"/>): three in 365
+        /// days on iOS, one in 30 days on Android. The QA bypass skips it, with a warning.
+        /// </summary>
+        private static bool NativeQuotaAllows() {
+            if (RateLimiter.BypassEnabled) {
+                Logger.Warn("Review quota check bypassed on this device (debug flag): the store may " +
+                            "show nothing. Call PromptSurge.SetRateLimitBypass(false) before shipping.");
+                return true;
+            }
+            var next = ReviewQuota.NextPossible();
+            if (next <= 0d) return true;
+            Logger.Info($"Skipping - {ReviewQuota.Rule.Reason}, so there is no pre-prompt and no native " +
+                        $"request this time. Next request possible after {ReviewQuota.FormatUtc(next)}.");
+            return false;
+        }
+
+        // Every native request, from every path, goes through ReviewRequester.Request(), which
+        // records it for the quota check before it reaches the store.
         private static void FireNativeReview(bool recordCooldown) {
             ReviewRequester.Request();
             Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested);
