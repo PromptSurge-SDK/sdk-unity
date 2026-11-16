@@ -13,7 +13,8 @@ moved.
   console, the server answers `mode: "notice"`: the dismiss button (`button1`) is hidden, and the
   remaining button, the back button and a tap on the scrim all lead to the store's rating sheet; no
   `pre_prompt_dismissed` is sent. Apps left on the default "Ask first" see no change. The
-  store-limit guard still decides first.
+  store-limit guard still decides first. The single button is centred: the button row's alignment
+  is switched from right to middle for a notice (`DialogView.Bind`).
 - **`native_sheet_closed { awayMs, source }`.** Neither store says whether its sheet appeared. After
   every native request the SDK times how long the game lost focus (`OnApplicationFocus` /
   `OnApplicationPause` on the `[PromptSurge]` runner); no focus loss within 3 seconds reports 0.
@@ -22,8 +23,8 @@ moved.
 ### Check before tagging
 
 - Built in a real Unity editor (2022.3 LTS) for Android and iOS, the notice shown with ONE button
-  in the shipped prefab (the confirm button keeps its own position; check it still looks right
-  alone), and a `native_sheet_closed` with a non-zero `awayMs` seen in the console after the
+  in the shipped prefab, centred under the text (a game with its own dialog prefab: the row that
+  holds `button2` needs a Horizontal or Vertical Layout Group for the centring to apply), and a `native_sheet_closed` with a non-zero `awayMs` seen in the console after the
   store's sheet appeared on a device.
 
 ## 1.3.0 - 2026-10-19

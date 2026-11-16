@@ -57,7 +57,16 @@ namespace PromptSurgeSDK.Internal {
 
             // "Announce only" (card 833): no dismiss button at all. The dialog announces the
             // store's sheet; it does not ask.
-            if (res.notice && _layout.button1 != null) _layout.button1.gameObject.SetActive(false);
+            if (res.notice && _layout.button1 != null) {
+                _layout.button1.gameObject.SetActive(false);
+                // One button sits in the middle. The prefab's button row is right-aligned
+                // (MiddleRight), which suits a pair; a single button at the right edge looks
+                // like half of one.
+                var row = _layout.button2 != null && _layout.button2.transform.parent != null
+                    ? _layout.button2.transform.parent.GetComponent<HorizontalOrVerticalLayoutGroup>()
+                    : null;
+                if (row != null) row.childAlignment = TextAnchor.MiddleCenter;
+            }
 
             // Negative (dismiss) button on the left: flat against the card, accent label.
             ConfigureButton(_layout.button1,
