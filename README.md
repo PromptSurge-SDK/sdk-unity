@@ -1,6 +1,12 @@
 # PromptSurge Unity SDK
 
-Unified Android + iOS review prompt SDK for Unity 2022.3+. Shows a pre-prompt dialog before triggering the native OS review sheet, increasing tap-through rates.
+Unified Android + iOS review prompt SDK for Unity 2022.3+. Shows a pre-prompt dialog before requesting the store's own review sheet.
+
+## Using an AI coding assistant
+
+Claude, ChatGPT, Gemini or Grok can do this integration for you. The prompt to paste is at
+<https://promptsurge.me/en/ai-assistants>, and the guide the assistant should read is one plain text
+file: <https://promptsurge.me/llms-full.txt>. Creating the account and copying the API key stay with you.
 
 ## Requirements
 
@@ -159,7 +165,7 @@ with `[action]` replaced by the moment you call `RequestReview()` (and your own 
 you changed them):
 
 ```
-After a user completes [action], the app shows a short request to leave a review. Tapping Sure opens the system rating sheet; tapping Not now closes it. The app never asks how the user feels and never collects a rating itself.
+After a user completes [action], the app shows a short request to leave a review. Tapping Sure requests the system rating sheet (SKStoreReviewController / AppStore.requestReview); tapping Not now closes it. The app never asks how the user feels and never collects a rating itself.
 ```
 
 Play has no reviewer-notes field for the in-app review flow.
