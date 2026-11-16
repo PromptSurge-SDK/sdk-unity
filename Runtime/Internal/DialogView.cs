@@ -55,6 +55,10 @@ namespace PromptSurgeSDK.Internal {
                 _layout.message.color = textColor;
             }
 
+            // "Announce only" (card 833): no dismiss button at all. The dialog announces the
+            // store's sheet; it does not ask.
+            if (res.notice && _layout.button1 != null) _layout.button1.gameObject.SetActive(false);
+
             // Negative (dismiss) button on the left: flat against the card, accent label.
             ConfigureButton(_layout.button1,
                 res.text?.negativeButton ?? Defaults.Text.negativeButton,

@@ -176,7 +176,7 @@ namespace PromptSurgeSDK {
             if (!NativeQuotaAllows()) return;
             if (HoldoutManager.IsHoldout) {
                 Logger.Info("Holdout group - firing native review directly.");
-                FireNativeReview(recordCooldown: true);
+                FireNativeReview(recordCooldown: true, source: "holdout");
                 return;
             }
 
@@ -185,12 +185,12 @@ namespace PromptSurgeSDK {
                 switch (outcome) {
                     case PromptFetchOutcome.LimitExceeded:
                         _requestInFlight = false;
-                        FireNativeReview(recordCooldown: true);
+                        FireNativeReview(recordCooldown: true, source: "impression_limit");
                         return;
 
                     case PromptFetchOutcome.AppDeleted:
                         _requestInFlight = false;
-                        FireNativeReview(recordCooldown: true);
+                        FireNativeReview(recordCooldown: true, source: "app_deleted");
                         return;
 
                     case PromptFetchOutcome.Unauthorized:
@@ -198,7 +198,7 @@ namespace PromptSurgeSDK {
                         // bundled English copy here is what made a broken key look like a working
                         // install; the error is already logged by the repository.
                         _requestInFlight = false;
-                        FireNativeReview(recordCooldown: true);
+                        FireNativeReview(recordCooldown: true, source: "unauthorized");
                         return;
                 }
 
@@ -211,7 +211,7 @@ namespace PromptSurgeSDK {
                 if (res.warmup) {
                     Logger.Info("Warm-up phase - firing native review to build baseline.");
                     _requestInFlight = false;
-                    FireNativeReview(recordCooldown: true);
+                    FireNativeReview(recordCooldown: true, source: "warmup");
                     return;
                 }
 
@@ -234,11 +234,12 @@ namespace PromptSurgeSDK {
                                    res.text?.locale);
                 },
                 onAccept: () => {
+                    // In notice mode this also runs when the dialog was closed any other way.
                     _requestInFlight = false;
                     Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.PrePromptConfirmed,
                                    res.promptId, null, res.text?.locale);
                     // The cooldown was already recorded when the dialog appeared.
-                    FireNativeReview(recordCooldown: false);
+                    FireNativeReview(recordCooldown: false, source: res.notice ? "notice" : "confirm", res: res);
                 },
                 onDismiss: () => {
                     _requestInFlight = false;
@@ -250,7 +251,7 @@ namespace PromptSurgeSDK {
                     // No dialog could be presented. Fall back to the native sheet rather than
                     // giving the player nothing; the presenter has already logged the reason.
                     _requestInFlight = false;
-                    FireNativeReview(recordCooldown: true);
+                    FireNativeReview(recordCooldown: true, source: "dialog_failed");
                 });
         }
 
@@ -274,10 +275,17 @@ namespace PromptSurgeSDK {
 
         // Every native request, from every path, goes through ReviewRequester.Request(), which
         // records it for the quota check before it reaches the store.
-        private static void FireNativeReview(bool recordCooldown) {
+        private static void FireNativeReview(bool recordCooldown, string source, PromptResponse res = null) {
             ReviewRequester.Request();
             Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativePromptRequested);
             if (recordCooldown) RateLimiter.RecordShown();
+            // Neither store says whether its sheet appeared; how long the game was away is all
+            // it can see (card 833). The runner's focus events end the measurement.
+            var promptId = res?.promptId;
+            var locale = res?.text?.locale;
+            PromptSurgeRunner.SheetAway.Watch(PromptSurgeRunner.NowSeconds(), awayMs =>
+                Telemetry.Send(_apiKey, _apiBaseUrl, EventTypes.NativeSheetClosed,
+                               promptId, null, locale, awayMs, source));
         }
 #endif
     }

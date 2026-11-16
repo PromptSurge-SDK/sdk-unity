@@ -84,7 +84,10 @@ namespace PromptSurgeSDK.Internal {
             var url = apiBaseUrl + "/v1/prompts"
                       + "?locale="     + UnityWebRequest.EscapeURL(LocaleTag.Current())
                       + "&sessionId="  + UnityWebRequest.EscapeURL(Telemetry.SessionId)
-                      + "&appVersion=" + UnityWebRequest.EscapeURL(version);
+                      + "&appVersion=" + UnityWebRequest.EscapeURL(version)
+                      // This SDK can draw the one-button notice (card 833). Without it, an app in
+                      // notice mode is answered with the warm-up shape: no dialog, straight to the sheet.
+                      + "&notice=1";
 
             var req = UnityWebRequest.Get(url);
             req.SetRequestHeader("X-PromptSurge-Key", apiKey);

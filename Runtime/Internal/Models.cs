@@ -48,6 +48,11 @@ namespace PromptSurgeSDK.Internal {
         /// Never cached - always reflects the live server state.
         /// </summary>
         public bool warmup;
+        /// <summary>
+        /// "Announce only" (card 833): one button, and the store's sheet is requested however
+        /// the dialog closes. False is the two-button ask.
+        /// </summary>
+        public bool notice;
     }
 
     // ── API wire model (matches actual JSON from /v1/prompts) ────────────────
@@ -79,6 +84,8 @@ namespace PromptSurgeSDK.Internal {
         /// The SDK fires native review without showing the pre-prompt dialog.
         /// </summary>
         public bool warmup;
+        /// <summary>"ask" or "notice" (card 833). Older servers omit it: ask.</summary>
+        public string mode;
     }
 
     /// <summary>Error envelope, e.g. <c>{"error":"app_deleted"}</c>.</summary>
@@ -119,6 +126,7 @@ namespace PromptSurgeSDK.Internal {
                 theme           = theme,
                 imageUrl        = api.imageUrl,
                 warmup          = api.warmup,
+                notice          = api.mode == "notice",
             };
         }
 

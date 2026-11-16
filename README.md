@@ -26,7 +26,7 @@ In Unity: **Window → Package Manager → + → Add package from git URL**
 https://github.com/PromptSurge-SDK/sdk-unity.git
 ```
 
-Pin a version by appending `#v1.3.0`. Without a tag the Package Manager tracks the default branch, which moves.
+Pin a version by appending `#v1.4.0`. Without a tag the Package Manager tracks the default branch, which moves.
 
 ### Option B - Local tarball
 

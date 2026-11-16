@@ -7,7 +7,7 @@ using UnityEngine.Networking;
 
 namespace PromptSurgeSDK.Internal {
     internal static class Telemetry {
-        internal const string SdkVersion = "1.3.0";
+        internal const string SdkVersion = "1.4.0";
         private const int TimeoutSeconds = 10;
 
         /// Shared with the prompt fetch so the server can select a copy variant deterministically
@@ -42,14 +42,16 @@ namespace PromptSurgeSDK.Internal {
 
         internal static void Send(string apiKey, string apiBaseUrl, string eventType,
                                   string promptId = null, int? servedPromptNumber = null,
-                                  string resolvedLocale = null) {
+                                  string resolvedLocale = null, int? awayMs = null,
+                                  string source = null) {
             PromptSurgeRunner.Instance.StartCoroutine(
-                PostEvent(apiKey, apiBaseUrl, eventType, promptId, servedPromptNumber, resolvedLocale));
+                PostEvent(apiKey, apiBaseUrl, eventType, promptId, servedPromptNumber, resolvedLocale,
+                          awayMs, source));
         }
 
         private static IEnumerator PostEvent(string apiKey, string apiBaseUrl, string eventType,
                                              string promptId, int? servedPromptNumber,
-                                             string resolvedLocale) {
+                                             string resolvedLocale, int? awayMs, string source) {
             // Build payload fields. servedPromptNumber must be an unquoted number (not a string).
             var payloadFields = "";
             if (!string.IsNullOrEmpty(promptId))
@@ -60,6 +62,13 @@ namespace PromptSurgeSDK.Internal {
             if (servedPromptNumber.HasValue && servedPromptNumber.Value > 0)
                 payloadFields += (payloadFields.Length > 0 ? "," : "") +
                                  $"\"servedPromptNumber\":{servedPromptNumber.Value}";
+            // native_sheet_closed only (card 833). awayMs is a whole number, unquoted.
+            if (awayMs.HasValue)
+                payloadFields += (payloadFields.Length > 0 ? "," : "") +
+                                 $"\"awayMs\":{Math.Max(0, awayMs.Value)}";
+            if (!string.IsNullOrEmpty(source))
+                payloadFields += (payloadFields.Length > 0 ? "," : "") +
+                                 $"\"source\":\"{Escape(source)}\"";
 
             // Application.version can be empty in editor builds - fall back to "0.0.0" so the
             // schema's min(1) check doesn't reject the event.

@@ -10,5 +10,7 @@ namespace PromptSurgeSDK.Internal {
         internal const string PrePromptConfirmed   = "pre_prompt_confirmed";
         internal const string PrePromptDismissed   = "pre_prompt_dismissed";
         internal const string NativePromptRequested = "native_prompt_requested";
+        // Card 833: how long the game was away after asking for the rating sheet (awayMs).
+        internal const string NativeSheetClosed     = "native_sheet_closed";
     }
 }
