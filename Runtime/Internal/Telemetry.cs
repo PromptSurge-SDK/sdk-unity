@@ -82,6 +82,11 @@ namespace PromptSurgeSDK.Internal {
                 ? ""
                 : $@",
   ""verifyToken"":""{Escape(VerifyToken)}""";
+            // Card 625: batch-level like verifyToken, absent (not null) once delivered.
+            var sendLegacy = PlayerPrefs.GetInt(LegacyIdSentKey, 0) != 1;
+            if (sendLegacy)
+                verifyField += $@",
+  ""legacyDeviceId"":""{Escape(LegacyDeviceId())}""";
 
             // Wrap in a batch envelope: the server expects { "events": [...] }.
             var json = $@"{{
@@ -121,6 +126,10 @@ namespace PromptSurgeSDK.Internal {
 
             if (success) {
                 Logger.Verbose($"Event accepted: {eventType} (HTTP {status})");
+                if (sendLegacy) {
+                    PlayerPrefs.SetInt(LegacyIdSentKey, 1);
+                    PlayerPrefs.Save();
+                }
                 ApplyAssignment(body);
             } else if (status == 401 || status == 403) {
                 Logger.Error($"Event '{eventType}' rejected: the API key is not valid (HTTP {status}).");
@@ -159,12 +168,33 @@ namespace PromptSurgeSDK.Internal {
             }
         }
 
+        /// PlayerPrefs key marking that this install has delivered its pre-1.4.0 id to the server
+        /// once (card 625). Same naming family as <see cref="FirstOpenKey"/>.
+        private const string LegacyIdSentKey = "ps_legacy_id_sent";
+
+        private static string _deviceId;
+
+        /// Since Unity SDK 1.4.0 (card 625): SHA-256(Unity's deviceUniqueIdentifier + the app's
+        /// package / bundle id), lowercase hex - the same shape as the native SDKs, so it cannot be
+        /// reversed and differs per app. Up to 1.3.x the SDK sent the identifier as Unity provides
+        /// it (MD5(ANDROID_ID) on Android, the raw identifierForVendor on iOS). The Privacy Policy
+        /// describes both - change it in the same commit as this method.
         private static string DeviceId() {
-            // Unity's own identifier, sent as Unity provides it: MD5(ANDROID_ID) on Android, the RAW
-            // identifierForVendor UUID on iOS (not hashed). The native SDKs send
-            // SHA-256(id + package/bundle); doing the same here gives every device a new id, so it
-            // waits for a release that ships for other reasons too (card 625). The Privacy Policy
-            // describes this exactly - change it in the same commit as this line.
+            if (_deviceId != null) return _deviceId;
+            using (var sha = System.Security.Cryptography.SHA256.Create()) {
+                var bytes = sha.ComputeHash(
+                    Encoding.UTF8.GetBytes(LegacyDeviceId() + Application.identifier));
+                var hex = new StringBuilder(bytes.Length * 2);
+                foreach (var b in bytes) hex.Append(b.ToString("x2"));
+                _deviceId = hex.ToString();
+            }
+            return _deviceId;
+        }
+
+        /// The id SDK 1.3.x and older sent. It rides along on batches until one is accepted, once
+        /// per install, so the server can carry an existing holdout assignment over to the new id
+        /// instead of re-rolling the device (card 349). Never sent again after that.
+        private static string LegacyDeviceId() {
             return SystemInfo.deviceUniqueIdentifier;
         }
 

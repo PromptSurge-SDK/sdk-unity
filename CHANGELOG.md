@@ -20,6 +20,15 @@ moved.
   `OnApplicationPause` on the `[PromptSurge]` runner); no focus loss within 3 seconds reports 0.
   New file `Runtime/Internal/SheetAwayTimer.cs` (pure C#).
 
+### Changed
+
+- **The device id is hashed like the native SDKs (card 625).** `deviceId` is now
+  `SHA-256(SystemInfo.deviceUniqueIdentifier + Application.identifier)`, lowercase hex (was Unity's
+  raw identifier: MD5(ANDROID_ID) on Android, the unhashed IDFV on iOS). Every device therefore
+  arrives under a new id; so that no game's experiment is reset, the old value rides along ONCE per
+  install as batch-level `legacyDeviceId` until a batch is accepted, and the server gives the new id
+  the old id's holdout group. Needs the API from the same merge (older servers ignore the field).
+
 ### Check before tagging
 
 - Built in a real Unity editor (2022.3 LTS) for Android and iOS, the notice shown with ONE button

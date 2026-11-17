@@ -182,17 +182,17 @@ Input handling set to **Input System (New) only**: the dialog works, but the And
 
 ### What the SDK collects
 
-One identifier per device: Unity's own `SystemInfo.deviceUniqueIdentifier`, sent as Unity provides
-it. On Android that is an MD5 hash of the `ANDROID_ID`. On iOS it is Apple's `identifierForVendor`
-(IDFV), **not hashed** - Unity's iOS trampoline returns `identifierForVendor.UUIDString`. The IDFV
-is not the advertising identifier: Apple scopes it to one vendor's apps on one device and resets it
-when all of that vendor's apps are removed. The SDK does not write the identifier to its logs, and
-no advertising identifier is used anywhere.
+One identifier per install, since 1.4.0 the same shape as the native Android and iOS SDKs:
+`SHA-256(SystemInfo.deviceUniqueIdentifier + Application.identifier)`, lowercase hex. It cannot be
+reversed and differs per app. The SDK does not write it to its logs, and no advertising identifier
+is used anywhere.
 
-This differs from the native Android and iOS SDKs, which send
-`SHA-256(device identifier + package or bundle ID)`. Doing the same here would give every existing
-device a new identifier, so it waits for a Unity release that ships for other reasons as well. The
-PromptSurge Privacy Policy describes both.
+**Up to 1.3.x** the SDK sent `SystemInfo.deviceUniqueIdentifier` as Unity provides it: an MD5 hash
+of the `ANDROID_ID` on Android, Apple's `identifierForVendor` (IDFV) **unhashed** on iOS. So that an
+updating game does not put its players into new comparison groups, 1.4.0 sends that older value
+ONCE per install, as `legacyDeviceId` on its first accepted batch (PlayerPrefs `ps_legacy_id_sent`
+marks it delivered); the server only uses it to carry the device's existing holdout group over to
+the new id (card 625). The PromptSurge Privacy Policy describes both versions.
 
 Alongside it, each event records which prompt step happened (`pre_prompt_shown`,
 `pre_prompt_confirmed`, `pre_prompt_dismissed`, `native_prompt_requested`, `initialize`,
