@@ -4,6 +4,38 @@ The version is `version` in `package.json` (and `Telemetry.SdkVersion`, which mu
 the public mirror (`PromptSurge-SDK/sdk-unity`) with `v<version>` when it changes; tags are never
 moved.
 
+## 1.4.0 - unreleased (merging this branch tags it)
+
+### Added
+
+- **"Announce only" pre-prompt (card 833).** The SDK now tells the server it can draw a one-button
+  notice (`notice=1` on `/v1/prompts`). When the app is set to "Announce only" in the PromptSurge
+  console, the server answers `mode: "notice"`: the dismiss button (`button1`) is hidden, and the
+  remaining button, the back button and a tap on the scrim all lead to the store's rating sheet; no
+  `pre_prompt_dismissed` is sent. Apps left on the default "Ask first" see no change. The
+  store-limit guard still decides first. The single button is centred: the button row's alignment
+  is switched from right to middle for a notice (`DialogView.Bind`).
+- **`native_sheet_closed { awayMs, source }`.** Neither store says whether its sheet appeared. After
+  every native request the SDK times how long the game lost focus (`OnApplicationFocus` /
+  `OnApplicationPause` on the `[PromptSurge]` runner); no focus loss within 3 seconds reports 0.
+  New file `Runtime/Internal/SheetAwayTimer.cs` (pure C#).
+
+### Changed
+
+- **The device id is hashed like the native SDKs (card 625).** `deviceId` is now
+  `SHA-256(SystemInfo.deviceUniqueIdentifier + Application.identifier)`, lowercase hex (was Unity's
+  raw identifier: MD5(ANDROID_ID) on Android, the unhashed IDFV on iOS). Every device therefore
+  arrives under a new id; so that no game's experiment is reset, the old value rides along ONCE per
+  install as batch-level `legacyDeviceId` until a batch is accepted, and the server gives the new id
+  the old id's holdout group. Needs the API from the same merge (older servers ignore the field).
+
+### Check before tagging
+
+- Built in a real Unity editor (2022.3 LTS) for Android and iOS, the notice shown with ONE button
+  in the shipped prefab, centred under the text (a game with its own dialog prefab: the row that
+  holds `button2` needs a Horizontal or Vertical Layout Group for the centring to apply), and a `native_sheet_closed` with a non-zero `awayMs` seen in the console after the
+  store's sheet appeared on a device.
+
 ## 1.3.0 - 2026-10-19
 
 

@@ -110,15 +110,18 @@ namespace PromptSurgeSDK.Internal {
             // Tapping the scrim outside the card dismisses. The prefab's Panel already carries a
             // Button with an empty onClick; anything with a Button that is not one of the two
             // dialog buttons is treated as scrim.
+            // In notice mode (card 833) every way out leads to the store's sheet: there is no
+            // "not now" to record.
+            var closeOutside = res.notice ? onAccept : onDismiss;
             WireScrimDismiss(root, layout, () => {
-                Logger.Info("Pre-prompt dismissed by tapping outside the card.");
-                close(onDismiss);
+                Logger.Info("Pre-prompt closed by tapping outside the card.");
+                close(closeOutside);
             });
 
             var watcher = root.AddComponent<DialogDismissWatcher>();
             watcher.OnBackPressed = () => {
-                Logger.Info("Pre-prompt dismissed with the back button.");
-                close(onDismiss);
+                Logger.Info("Pre-prompt closed with the back button.");
+                close(closeOutside);
             };
 
             // Hide the card until everything (incl. the header image) is ready - the dim
