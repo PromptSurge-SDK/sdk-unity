@@ -4,7 +4,7 @@ The version is `version` in `package.json` (and `Telemetry.SdkVersion`, which mu
 the public mirror (`PromptSurge-SDK/sdk-unity`) with `v<version>` when it changes; tags are never
 moved.
 
-## 1.4.0 - unreleased (merging this branch tags it)
+## 1.4.0 - 2026-11-19
 
 ### Added
 
@@ -29,12 +29,13 @@ moved.
   install as batch-level `legacyDeviceId` until a batch is accepted, and the server gives the new id
   the old id's holdout group. Needs the API from the same merge (older servers ignore the field).
 
-### Check before tagging
+### Verified before release, and what was not
 
-- Built in a real Unity editor (2022.3 LTS) for Android and iOS, the notice shown with ONE button
-  in the shipped prefab, centred under the text (a game with its own dialog prefab: the row that
-  holds `button2` needs a Horizontal or Vertical Layout Group for the centring to apply), and a `native_sheet_closed` with a non-zero `awayMs` seen in the console after the
-  store's sheet appeared on a device.
+- Compiled in a Unity editor for Android and iOS by the game developer (2026-11-19).
+- NOT run on a device before the tag (operator decision, 2026-11-19). The one-button dialog, the
+  hashed device id and the time-away event are covered by source and logic checks only
+  (`scripts/unity-holdout-harness`) and by the API tests. Run a device build before shipping a
+  game on this version; a fix would be 1.4.1.
 
 ## 1.3.0 - 2026-10-19
 
